@@ -47,9 +47,11 @@ export default function DashboardStats({ menuItems, activeOrders }: DashboardSta
           <CardTitle className="text-sm font-medium">Menu Items</CardTitle>
           <Utensils className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{menuItems.length}</div>
-          <p className="text-xs text-muted-foreground">Total dishes in the system</p>
+        <CardContent className="text-center pt-4">
+          <div className="flex items-center justify-center w-24 h-24 rounded-full bg-muted mx-auto">
+              <span className="text-5xl font-bold">{menuItems.length}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Total dishes in the system</p>
         </CardContent>
       </Card>
       <OrderStatusChart orders={activeOrders} />

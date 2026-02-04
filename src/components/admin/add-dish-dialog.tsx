@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PlusCircle } from "lucide-react";
 import type { MenuItem, Tag } from "@/types";
 import MenuItemCard from "@/components/shared/menu-item-card";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AddDishDialogProps {
   onAddMenuItem: (item: MenuItem) => void;
@@ -26,6 +27,7 @@ const initialDishState: Partial<MenuItem> = {
   name: "",
   price: 0,
   category: "",
+  description: "",
   imageUrl: "",
   tags: ["Veg"],
   quantity: 10,
@@ -35,7 +37,7 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
   const [newDish, setNewDish] = useState<Partial<MenuItem>>(initialDishState);
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setNewDish((prev) => ({ ...prev, [id]: id === 'price' ? parseFloat(value) || 0 : value }));
   };
@@ -45,14 +47,18 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
   };
   
   const handleSubmit = () => {
+    const now = new Date().toISOString();
     const dishToAdd: MenuItem = {
       id: `dish-${Date.now()}`,
       name: newDish.name || 'Unnamed Dish',
       price: newDish.price || 0,
       category: newDish.category || 'Uncategorized',
+      description: newDish.description,
       imageUrl: newDish.imageUrl || `https://picsum.photos/seed/${Date.now()}/600/400`,
       tags: newDish.tags || ['Veg'],
       quantity: newDish.quantity ?? 10,
+      createdAt: now,
+      updatedAt: now,
     };
     onAddMenuItem(dishToAdd);
     setNewDish(initialDishState);
@@ -88,6 +94,10 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="category" className="text-right">Category</Label>
               <Input id="category" value={newDish.category} onChange={handleInputChange} className="col-span-3" />
+            </div>
+             <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="description" className="text-right pt-2">Description</Label>
+              <Textarea id="description" value={newDish.description} onChange={handleInputChange} className="col-span-3" placeholder="A short description of the dish." />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="imageUrl" className="text-right">Image URL</Label>

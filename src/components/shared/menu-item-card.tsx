@@ -36,6 +36,7 @@ export default function MenuItemCard({ item, className }: MenuItemCardProps) {
             </div>
         </div>
         <p className="text-sm text-muted-foreground mt-1">{item.category || 'Category'}</p>
+        {item.description && <p className="text-xs text-muted-foreground mt-1 truncate">{item.description}</p>}
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
         <p className="text-lg font-bold text-primary">${(item.price || 0).toFixed(2)}</p>
