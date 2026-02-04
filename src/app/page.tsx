@@ -10,6 +10,8 @@ import WorkerPortal from '@/components/screens/worker-portal';
 
 type View = 'login' | 'admin' | 'worker';
 
+const EMPLOYEE_ID_STORAGE_KEY = 'culinaryFlowEmployeeId';
+
 export default function Home() {
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState<View>('login');
@@ -22,6 +24,20 @@ export default function Home() {
     setIsClient(true);
     setMenuItems(mockMenuItems);
     setActiveOrders(mockActiveOrders);
+    
+    const savedEmployeeId = localStorage.getItem(EMPLOYEE_ID_STORAGE_KEY);
+    if (savedEmployeeId) {
+      const upperId = savedEmployeeId.toUpperCase();
+      if (upperId.startsWith('AD')) {
+        setEmployeeId(savedEmployeeId);
+        setCurrentView('admin');
+      } else if (upperId.startsWith('WK')) {
+        setEmployeeId(savedEmployeeId);
+        setCurrentView('worker');
+      } else {
+        localStorage.removeItem(EMPLOYEE_ID_STORAGE_KEY);
+      }
+    }
   }, []);
 
   const handleLogin = (id: string) => {
@@ -29,9 +45,11 @@ export default function Home() {
     if (upperId.startsWith('AD')) {
       setEmployeeId(id);
       setCurrentView('admin');
+      localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, id);
     } else if (upperId.startsWith('WK')) {
       setEmployeeId(id);
       setCurrentView('worker');
+      localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, id);
     } else {
       toast({
         variant: 'destructive',
@@ -44,6 +62,7 @@ export default function Home() {
   const handleLogout = () => {
     setEmployeeId(null);
     setCurrentView('login');
+    localStorage.removeItem(EMPLOYEE_ID_STORAGE_KEY);
   };
 
   const handleUpdateMenuItem = (updatedItem: MenuItem) => {
