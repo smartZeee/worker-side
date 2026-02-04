@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Utensils, ShoppingCart } from "lucide-react";
 import type { MenuItem, Order } from "@/types";
+import OrderStatusChart from "./order-status-chart";
 
 interface DashboardStatsProps {
   menuItems: MenuItem[];
@@ -20,7 +21,7 @@ export default function DashboardStats({ menuItems, activeOrders }: DashboardSta
   const nonCompletedOrders = activeOrders.filter(order => order.status !== 'Completed');
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -51,6 +52,7 @@ export default function DashboardStats({ menuItems, activeOrders }: DashboardSta
           <p className="text-xs text-muted-foreground">Total dishes in the system</p>
         </CardContent>
       </Card>
+      <OrderStatusChart orders={activeOrders} />
     </div>
   );
 }
