@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import type { MenuItem, Order } from '@/types';
 import { mockMenuItems, mockActiveOrders } from '@/lib/mock-data';
 import LoginScreen from '@/components/screens/login-screen';
@@ -10,6 +11,7 @@ import WorkerPortal from '@/components/screens/worker-portal';
 type View = 'login' | 'admin' | 'worker';
 
 export default function Home() {
+  const { toast } = useToast();
   const [currentView, setCurrentView] = useState<View>('login');
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -31,8 +33,11 @@ export default function Home() {
       setEmployeeId(id);
       setCurrentView('worker');
     } else {
-      // Maybe show an error toast
-      console.error('Invalid Employee ID');
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Employee ID',
+        description: "Please use 'AD...' for Admin or 'WK...' for Worker.",
+      });
     }
   };
 
