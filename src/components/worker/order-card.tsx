@@ -36,9 +36,9 @@ export default function OrderCard({ order, menuItems, onUpdateOrderStatus }: Ord
 
   const getActionText = (status: OrderStatus) => {
     switch (status) {
-        case 'Pending': return 'In Progress';
-        case 'In Progress': return 'Ready';
-        case 'Ready': return 'Completed';
+        case 'Pending': return 'Start Cooking';
+        case 'In Progress': return 'Mark as Ready';
+        case 'Ready': return 'Complete Order';
         default: return null;
     }
   }
