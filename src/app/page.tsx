@@ -82,7 +82,6 @@ export default function Home() {
             menuItems={menuItems}
             activeOrders={activeOrders}
             onLogout={handleLogout}
-            onUpdateMenuItem={handleUpdateMenuItem}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             employeeId={employeeId || ''}
           />

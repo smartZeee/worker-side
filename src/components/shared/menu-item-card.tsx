@@ -13,6 +13,7 @@ const defaultName = "Your Awesome Dish";
 
 export default function MenuItemCard({ item, className }: MenuItemCardProps) {
   const isVeg = item.tags?.includes("Veg");
+  const isAvailable = (item.quantity ?? 1) > 0;
   
   return (
     <Card className={`overflow-hidden ${className}`}>
@@ -38,8 +39,8 @@ export default function MenuItemCard({ item, className }: MenuItemCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
         <p className="text-lg font-bold text-primary">${(item.price || 0).toFixed(2)}</p>
-        <Badge variant={item.isAvailable ?? true ? 'secondary' : 'destructive'}>
-          {item.isAvailable ?? true ? 'Available' : 'Sold Out'}
+        <Badge variant={isAvailable ? 'secondary' : 'destructive'}>
+          {isAvailable ? 'Available' : 'Sold Out'}
         </Badge>
       </CardFooter>
     </Card>

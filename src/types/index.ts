@@ -8,7 +8,7 @@ export interface MenuItem {
   category: string;
   imageUrl: string;
   tags: Tag[];
-  isAvailable: boolean;
+  quantity: number;
 }
 
 export interface OrderItem {

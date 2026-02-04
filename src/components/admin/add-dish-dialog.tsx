@@ -28,7 +28,7 @@ const initialDishState: Partial<MenuItem> = {
   category: "",
   imageUrl: "",
   tags: ["Veg"],
-  isAvailable: true,
+  quantity: 10,
 };
 
 export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
@@ -52,7 +52,7 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
       category: newDish.category || 'Uncategorized',
       imageUrl: newDish.imageUrl || `https://picsum.photos/seed/${Date.now()}/600/400`,
       tags: newDish.tags || ['Veg'],
-      isAvailable: true,
+      quantity: newDish.quantity ?? 10,
     };
     onAddMenuItem(dishToAdd);
     setNewDish(initialDishState);

@@ -7,7 +7,6 @@ interface WorkerPortalProps {
   menuItems: MenuItem[];
   activeOrders: Order[];
   onLogout: () => void;
-  onUpdateMenuItem: (item: MenuItem) => void;
   onUpdateOrderStatus: (orderId: string, newStatus: Order['status']) => void;
   employeeId: string;
 }
@@ -16,7 +15,6 @@ export default function WorkerPortal({
   menuItems,
   activeOrders,
   onLogout,
-  onUpdateMenuItem,
   onUpdateOrderStatus,
   employeeId,
 }: WorkerPortalProps) {
@@ -34,7 +32,7 @@ export default function WorkerPortal({
           />
         </div>
         <div className="lg:col-span-1">
-          <QuickStockControl menuItems={menuItems} onUpdateMenuItem={onUpdateMenuItem} />
+          <QuickStockControl menuItems={menuItems} />
         </div>
       </main>
     </div>

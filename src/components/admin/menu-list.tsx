@@ -14,7 +14,7 @@ interface MenuListProps {
 export default function MenuList({ menuItems, onUpdateMenuItem, onAddMenuItem }: MenuListProps) {
   
   const handleToggle = (item: MenuItem, checked: boolean) => {
-    onUpdateMenuItem({ ...item, isAvailable: checked });
+    onUpdateMenuItem({ ...item, quantity: checked ? 10 : 0 });
   };
 
   return (
@@ -46,11 +46,11 @@ export default function MenuList({ menuItems, onUpdateMenuItem, onAddMenuItem }:
               <div className="flex items-center space-x-2">
                 <Switch
                   id={`available-${item.id}`}
-                  checked={item.isAvailable}
+                  checked={item.quantity > 0}
                   onCheckedChange={(checked) => handleToggle(item, checked)}
                   aria-label={`${item.name} availability`}
                 />
-                <Label htmlFor={`available-${item.id}`}>{item.isAvailable ? "Available" : "Sold Out"}</Label>
+                <Label htmlFor={`available-${item.id}`}>{item.quantity > 0 ? "Available" : "Sold Out"}</Label>
               </div>
             </div>
           ))}

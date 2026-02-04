@@ -8,7 +8,7 @@ export const mockMenuItems: MenuItem[] = [
     category: 'Burgers',
     imageUrl: 'https://picsum.photos/seed/1/600/400',
     tags: ['Non-Veg'],
-    isAvailable: true,
+    quantity: 25,
   },
   {
     id: 'dish-002',
@@ -17,7 +17,7 @@ export const mockMenuItems: MenuItem[] = [
     category: 'Pizzas',
     imageUrl: 'https://picsum.photos/seed/2/600/400',
     tags: ['Veg'],
-    isAvailable: true,
+    quantity: 15,
   },
   {
     id: 'dish-003',
@@ -26,7 +26,7 @@ export const mockMenuItems: MenuItem[] = [
     category: 'Salads',
     imageUrl: 'https://picsum.photos/seed/3/600/400',
     tags: ['Veg'],
-    isAvailable: false,
+    quantity: 0,
   },
   {
     id: 'dish-004',
@@ -35,7 +35,7 @@ export const mockMenuItems: MenuItem[] = [
     category: 'Pasta',
     imageUrl: 'https://picsum.photos/seed/4/600/400',
     tags: ['Non-Veg'],
-    isAvailable: true,
+    quantity: 8,
   },
   {
     id: 'dish-005',
@@ -44,7 +44,7 @@ export const mockMenuItems: MenuItem[] = [
     category: 'Desserts',
     imageUrl: 'https://picsum.photos/seed/5/600/400',
     tags: ['Veg'],
-    isAvailable: true,
+    quantity: 7,
   },
   {
     id: 'dish-006',
@@ -53,7 +53,7 @@ export const mockMenuItems: MenuItem[] = [
     category: 'Wraps',
     imageUrl: 'https://picsum.photos/seed/6/600/400',
     tags: ['Veg'],
-    isAvailable: true,
+    quantity: 11,
   },
 ];
 
