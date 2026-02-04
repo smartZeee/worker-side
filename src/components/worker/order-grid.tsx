@@ -23,11 +23,18 @@ interface OrderGridProps {
   onUpdateOrderStatus: (orderId: string, newStatus: Order['status']) => void;
 }
 
-const statusBadgeVariants: Record<OrderStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  Pending: 'secondary',
-  'In Progress': 'default',
-  Ready: 'outline',
-  Completed: 'destructive',
+const statusButtonColors: Record<OrderStatus, string> = {
+  Pending: 'bg-yellow-500 hover:bg-yellow-600 text-black',
+  'In Progress': 'bg-blue-500 hover:bg-blue-600 text-white',
+  Ready: 'bg-green-500 hover:bg-green-600 text-white',
+  Completed: '',
+};
+
+const statusBadgeColors: Record<OrderStatus, string> = {
+  Pending: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  'In Progress': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  Ready: 'bg-green-500/20 text-green-300 border-green-500/30',
+  Completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
 
 
@@ -115,11 +122,11 @@ export default function OrderGrid({ orders, menuItems, onUpdateOrderStatus }: Or
                         {formatDistanceToNow(new Date(order.timestamp), { addSuffix: true })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusBadgeVariants[order.status] || 'default'}>{order.status}</Badge>
+                        <Badge variant="outline" className={statusBadgeColors[order.status] || ''}>{order.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         {actionText && nextStatus && (
-                          <Button size="sm" onClick={() => onUpdateOrderStatus(order.id, nextStatus)}>
+                          <Button size="sm" onClick={() => onUpdateOrderStatus(order.id, nextStatus)} className={statusButtonColors[order.status]}>
                             {actionText}
                           </Button>
                         )}
