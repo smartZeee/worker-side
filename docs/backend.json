@@ -22,6 +22,10 @@
           "type": "string",
           "description": "Category of the dish (e.g., appetizer, main course)."
         },
+        "description": {
+          "type": "string",
+          "description": "A short description of the dish."
+        },
         "imageUrl": {
           "type": "string",
           "description": "URL of the image for the dish.",
@@ -34,9 +38,17 @@
             "type": "string"
           }
         },
-        "isAvailable": {
-          "type": "boolean",
-          "description": "Indicates if the dish is currently available."
+        "quantity": {
+          "type": "number",
+          "description": "Indicates the available stock for the dish."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
         }
       },
       "required": [
@@ -45,7 +57,7 @@
         "price",
         "category",
         "imageUrl",
-        "isAvailable"
+        "quantity"
       ]
     },
     "Order": {
@@ -58,14 +70,23 @@
           "type": "string",
           "description": "Unique identifier for the order."
         },
-        "menuItemIds": {
+        "items": {
           "type": "array",
-          "description": "References to MenuItems in this order. (Relationship: Order 1:N MenuItem)",
+          "description": "Menu items in this order.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "menuItemId": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              }
+            },
+            "required": ["menuItemId", "quantity"]
           }
         },
-        "orderDate": {
+        "timestamp": {
           "type": "string",
           "description": "Date and time when the order was placed.",
           "format": "date-time"
@@ -78,18 +99,17 @@
           "type": "string",
           "description": "Reference to Worker. (Relationship: Worker 1:N Order)"
         },
-        "quantity": {
-          "type": "number",
-          "description": "The amount of items of this type."
+        "tableNumber": {
+          "type": "number"
         }
       },
       "required": [
         "id",
-        "menuItemIds",
-        "orderDate",
+        "items",
+        "timestamp",
         "status",
         "workerId",
-        "quantity"
+        "tableNumber"
       ]
     },
     "Worker": {
@@ -151,76 +171,29 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/menu_items/{menuItemId}",
-        "definition": {
-          "entityName": "MenuItem",
-          "schema": {
-            "$ref": "#/backend/entities/MenuItem"
-          },
-          "description": "Stores information about each menu item. Only admins can create, update, or delete menu items.",
-          "params": [
-            {
-              "name": "menuItemId",
-              "description": "Unique identifier for the menu item."
-            }
-          ]
-        }
+    "/menu_items/{menuItemId}": {
+      "schema": {
+        "$ref": "#/entities/MenuItem"
       },
-      {
-        "path": "/workers/{workerId}",
-        "definition": {
-          "entityName": "Worker",
-          "schema": {
-            "$ref": "#/backend/entities/Worker"
-          },
-          "description": "Stores worker information. Used for authentication and assigning orders.",
-          "params": [
-            {
-              "name": "workerId",
-              "description": "Unique identifier for the worker."
-            }
-          ]
-        }
+      "description": "Stores information about each menu item. Only admins can create, update, or delete menu items."
+    },
+    "/workers/{workerId}": {
+      "schema": {
+        "$ref": "#/entities/Worker"
       },
-      {
-        "path": "/workers/{workerId}/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Stores order information associated with a specific worker. Includes the `workerId` for authorization.",
-          "params": [
-            {
-              "name": "workerId",
-              "description": "Unique identifier for the worker."
-            },
-            {
-              "name": "orderId",
-              "description": "Unique identifier for the order."
-            }
-          ]
-        }
+      "description": "Stores worker information. Used for authentication and assigning orders."
+    },
+    "/workers/{workerId}/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/Order"
       },
-      {
-        "path": "/roles_admin/{adminId}",
-        "definition": {
-          "entityName": "Admin",
-          "schema": {
-            "$ref": "#/backend/entities/Admin"
-          },
-          "description": "Indicates that a user is an administrator. Existence of a document at this path grants admin privileges. Used for login validation.",
-          "params": [
-            {
-              "name": "adminId",
-              "description": "Unique identifier for the admin."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to support a Food App Management Portal with distinct Admin and Worker interfaces. The structure prioritizes authorization independence and simple security rules. Admins and workers are modeled using distinct collections to ensure security. Menu items are stored in a top-level collection, while orders are associated with specific workers to track order assignments. The structure uses explicit collections for roles (admins and workers) and path-based ownership where applicable.\n\n*   **Authorization Independence:** No `get()` calls are required for authorization. Roles are checked by existence in the `/roles_admin/{uid}` and `/workers/{workerId}` collections. This avoids hierarchical dependencies.\n*   **Clarity of Intent:** The structure clearly separates admin and worker data, making authorization intent explicit.\n*   **DBAC (Database Auth):** Roles are stored in the database (`/roles_admin/{uid}`, `/workers/{workerId}`), relying solely on `request.auth.uid` for authorization.\n*   **QAPs (Rules are not Filters):** The segregated structure enables secure `list` operations. Only admins can list all menu items, while workers can only access their assigned orders.  The structure supports listing all menu items for the admin portal without needing to filter based on accessibility.\n*   **Invariants:** The structure supports ownership via the `workerId` field in the `Order` document, ensuring orders are always associated with a worker. Timestamps (`orderDate`) and denormalized data can be easily added/managed as needed."
+      "description": "Stores order information associated with a specific worker. Includes the `workerId` for authorization."
+    },
+    "/roles_admin/{adminId}": {
+      "schema": {
+        "$ref": "#/entities/Admin"
+      },
+      "description": "Indicates that a user is an administrator. Existence of a document at this path grants admin privileges. Used for login validation."
+    }
   }
 }

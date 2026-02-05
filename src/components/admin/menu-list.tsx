@@ -7,14 +7,14 @@ import { AddDishDialog } from "./add-dish-dialog";
 
 interface MenuListProps {
   menuItems: MenuItem[];
-  onUpdateMenuItem: (item: MenuItem) => void;
-  onAddMenuItem: (item: MenuItem) => void;
+  onUpdateMenuItem: (item: Partial<MenuItem>) => void;
+  onAddMenuItem: (item: Omit<MenuItem, 'id'>) => void;
 }
 
 export default function MenuList({ menuItems, onUpdateMenuItem, onAddMenuItem }: MenuListProps) {
   
   const handleToggle = (item: MenuItem, checked: boolean) => {
-    onUpdateMenuItem({ ...item, quantity: checked ? 10 : 0 });
+    onUpdateMenuItem({ id: item.id, quantity: checked ? 10 : 0 });
   };
 
   return (

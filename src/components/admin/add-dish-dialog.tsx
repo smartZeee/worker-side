@@ -20,7 +20,7 @@ import MenuItemCard from "@/components/shared/menu-item-card";
 import { Textarea } from "@/components/ui/textarea";
 
 interface AddDishDialogProps {
-  onAddMenuItem: (item: MenuItem) => void;
+  onAddMenuItem: (item: Omit<MenuItem, 'id'>) => void;
 }
 
 const initialDishState: Partial<MenuItem> = {
@@ -39,7 +39,7 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setNewDish((prev) => ({ ...prev, [id]: id === 'price' ? parseFloat(value) || 0 : value }));
+    setNewDish((prev) => ({ ...prev, [id]: id === 'price' || id === 'quantity' ? parseFloat(value) || 0 : value }));
   };
 
   const handleTagChange = (value: string) => {
@@ -47,9 +47,7 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
   };
   
   const handleSubmit = () => {
-    const now = new Date().toISOString();
-    const dishToAdd: MenuItem = {
-      id: `dish-${Date.now()}`,
+    const dishToAdd: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'> = {
       name: newDish.name || 'Unnamed Dish',
       price: newDish.price || 0,
       category: newDish.category || 'Uncategorized',
@@ -57,10 +55,8 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
       imageUrl: newDish.imageUrl || `https://picsum.photos/seed/${Date.now()}/600/400`,
       tags: newDish.tags || ['Veg'],
       quantity: newDish.quantity ?? 10,
-      createdAt: now,
-      updatedAt: now,
     };
-    onAddMenuItem(dishToAdd);
+    onAddMenuItem(dishToAdd as Omit<MenuItem, 'id'>);
     setNewDish(initialDishState);
     setIsOpen(false);
   };
@@ -102,6 +98,10 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
               <Input id="imageUrl" value={newDish.imageUrl} onChange={handleInputChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="quantity" className="text-right">Quantity</Label>
+              <Input id="quantity" type="number" value={newDish.quantity} onChange={handleInputChange} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Tag</Label>

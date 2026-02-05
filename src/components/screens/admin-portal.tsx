@@ -7,8 +7,8 @@ interface AdminPortalProps {
   menuItems: MenuItem[];
   activeOrders: Order[];
   onLogout: () => void;
-  onUpdateMenuItem: (item: MenuItem) => void;
-  onAddMenuItem: (item: MenuItem) => void;
+  onUpdateMenuItem: (item: Partial<MenuItem>) => void;
+  onAddMenuItem: (item: Omit<MenuItem, 'id'>) => void;
   employeeId: string;
 }
 
