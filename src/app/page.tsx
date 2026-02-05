@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -32,82 +33,78 @@ export default function Home() {
     [firestore, employeeId]
   );
   const { data: activeOrders } = useCollection<Order>(ordersQuery);
-
+  
   useEffect(() => {
     setIsClient(true);
-    const savedEmployeeId = localStorage.getItem(EMPLOYEE_ID_STORAGE_KEY);
-    if (savedEmployeeId && user) {
-        // If there's a logged in user and a saved ID, validate and set view
-        getDoc(doc(firestore, 'workers', savedEmployeeId.toUpperCase())).then(workerDoc => {
-            if(workerDoc.exists()) {
-                const workerData = workerDoc.data() as Worker;
-                if (workerData.role === 'admin') {
-                    setCurrentView('admin');
-                } else {
-                    setCurrentView('worker');
-                }
-                setEmployeeId(savedEmployeeId);
-            } else {
-                handleLogout();
-            }
-        });
+  }, []);
+
+  useEffect(() => {
+    if (user && firestore) {
+      const workerIdFromEmail = user.email?.split('@')[0];
+      if (!workerIdFromEmail) {
+        handleLogout();
+        return;
+      }
+      
+      const workerDocRef = doc(firestore, 'workers', workerIdFromEmail);
+      getDoc(workerDocRef).then(workerDoc => {
+        if (workerDoc.exists()) {
+          const workerData = workerDoc.data() as Worker;
+          if (!workerData.isActive) {
+            toast({ variant: 'destructive', title: 'Login Failed', description: 'This employee account is inactive.' });
+            handleLogout();
+            return;
+          }
+
+          if (workerData.role === 'admin') {
+            setCurrentView('admin');
+          } else {
+            setCurrentView('worker');
+          }
+          setEmployeeId(workerIdFromEmail);
+          localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, workerIdFromEmail);
+        } else {
+          toast({ variant: 'destructive', title: 'Login Failed', description: 'No valid worker profile found.' });
+          handleLogout();
+        }
+      }).catch(error => {
+        console.error("Error fetching worker profile:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch worker profile.' });
+        handleLogout();
+      });
+    } else if (!user) {
+        const savedId = localStorage.getItem(EMPLOYEE_ID_STORAGE_KEY);
+        if (savedId) {
+             handleLogout();
+        } else {
+            setCurrentView('login');
+        }
     }
-  }, [user]);
+  }, [user, firestore]);
 
   const handleLogin = async (id: string, password_from_user: string) => {
     const upperId = id.toUpperCase();
     const email = `${upperId}@culinaryflow.app`;
 
     try {
-      // 1. Check if worker exists and is active in Firestore
-      const workerDocRef = doc(firestore, 'workers', upperId);
-      const workerDoc = await getDoc(workerDocRef);
-
-      if (!workerDoc.exists()) {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: 'Employee ID not found.',
-        });
-        return;
-      }
-      
-      const workerData = workerDoc.data() as Worker;
-      if (!workerData.isActive) {
-         toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: 'This employee account is inactive.',
-        });
-        return;
-      }
-
-      // 2. Try to sign in with Firebase Auth
+      // First, just try to sign in. The useEffect will handle the rest.
       await signInWithEmailAndPassword(auth, email, password_from_user);
-      
-      // 3. Set view based on role
-      if (workerData.role === 'admin') {
-        setCurrentView('admin');
-      } else {
-        setCurrentView('worker');
-      }
-      setEmployeeId(upperId);
-      localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, upperId);
-
     } catch (error: any) {
-      // 4. If user not found, create them in Firebase Auth and retry
       if (error.code === 'auth/user-not-found') {
+        // If the user doesn't exist in Auth, we'll try to create them.
+        // The useEffect will then validate if they are a valid worker in Firestore.
         try {
           await createUserWithEmailAndPassword(auth, email, password_from_user);
-          await handleLogin(id, password_from_user); // Retry login after sign up
+          // On success, the `user` state will change, and the useEffect will run.
         } catch (signUpError: any) {
           toast({
             variant: 'destructive',
-            title: 'Setup Failed',
-            description: `Could not create a new account: ${signUpError.message}`,
+            title: 'Sign-up Failed',
+            description: 'This ID may be in use with a different password, or another error occurred.',
           });
         }
       } else {
+        // Handle other auth errors like wrong password.
         toast({
           variant: 'destructive',
           title: 'Login Failed',
