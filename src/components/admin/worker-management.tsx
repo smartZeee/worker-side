@@ -14,16 +14,24 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
+import { AddWorkerDialog } from "./add-worker-dialog";
 
 interface WorkerManagementProps {
   workers: Worker[];
   onUpdateWorker: (worker: Partial<Worker>) => void;
+  onRefresh?: () => void;
 }
 
-export default function WorkerManagement({ workers, onUpdateWorker }: WorkerManagementProps) {
+export default function WorkerManagement({ workers, onUpdateWorker, onRefresh }: WorkerManagementProps) {
 
   const handleToggle = (worker: Worker, checked: boolean) => {
     onUpdateWorker({ id: worker.id, isActive: checked });
+  };
+
+  const handleWorkerAdded = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const roleColors: Record<Worker['role'], string> = {
@@ -38,6 +46,10 @@ export default function WorkerManagement({ workers, onUpdateWorker }: WorkerMana
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-3xl font-headline">Worker Management</CardTitle>
+          <AddWorkerDialog 
+            onAddWorker={handleWorkerAdded} 
+            existingWorkerIds={workers.map(w => w.workerId)} 
+          />
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">

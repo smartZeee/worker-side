@@ -76,6 +76,24 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
+  const refreshWorkers = async () => {
+    try {
+      const employeeSnapshot = await getDocs(collection(firestore, 'employee'));
+      const employeeData = employeeSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Worker[];
+      setWorkers(employeeData);
+    } catch (error) {
+      console.error('Error refreshing workers:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to refresh workers.',
+      });
+    }
+  };
+
   const handleLogin = (id: string, password_from_user: string) => {
     const upperId = id.toUpperCase();
     
@@ -202,6 +220,7 @@ export default function Home() {
             onUpdateMenuItem={handleUpdateMenuItem}
             onAddMenuItem={handleAddMenuItem}
             onUpdateWorker={handleUpdateWorker}
+            onRefreshWorkers={refreshWorkers}
             employeeId={employeeId || ''}
           />
         );
@@ -210,6 +229,7 @@ export default function Home() {
           <WorkerPortal
             menuItems={menuItemsToShow}
             activeOrders={ordersToShow.filter(o => o.workerId === employeeId)}
+            workers={workersToShow}
             onLogout={handleLogout}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             employeeId={employeeId || ''}
