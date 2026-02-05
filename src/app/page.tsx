@@ -7,7 +7,7 @@ import LoginScreen from '@/components/screens/login-screen';
 import AdminPortal from '@/components/screens/admin-portal';
 import WorkerPortal from '@/components/screens/worker-portal';
 import { initializeFirebase } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc, getDocs, query } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, getDocs, query, onSnapshot } from 'firebase/firestore';
 
 type View = 'login' | 'admin' | 'worker';
 
@@ -75,6 +75,28 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Real-time listener for orders
+  useEffect(() => {
+    if (!isClient) return;
+
+    const unsubscribe = onSnapshot(
+      collection(firestore, 'orders'),
+      (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Order[];
+        setActiveOrders(ordersData);
+        console.log('Orders updated in real-time:', ordersData.length);
+      },
+      (error) => {
+        console.error('Error listening to orders:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [isClient, firestore]);
 
   const refreshWorkers = async () => {
     try {
@@ -340,7 +362,7 @@ export default function Home() {
         return (
           <WorkerPortal
             menuItems={menuItemsToShow}
-            activeOrders={ordersToShow.filter(o => o.workerId === employeeId)}
+            activeOrders={ordersToShow}
             workers={workersToShow}
             onLogout={handleLogout}
             onUpdateOrderStatus={handleUpdateOrderStatus}

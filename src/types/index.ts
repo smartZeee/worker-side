@@ -11,22 +11,27 @@ export interface MenuItem {
   imageUrl: string;
   tags: Tag[];
   quantity: number;
+  isActive?: boolean; // Optional, derived from quantity > 0
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface OrderItem {
-  menuItemId: string;
+  name: string;
+  price: number;
   quantity: number;
 }
 
 export interface Order {
   id: string;
-  tableNumber: number;
+  customerName: string;
   items: OrderItem[];
   status: OrderStatus;
-  timestamp: string;
-  workerId: string;
+  total: number;
+  createdAt: any; // Firestore timestamp
+  tableNumber?: number; // Optional for backward compatibility
+  workerId?: string; // Optional for backward compatibility
+  timestamp?: string; // Optional for backward compatibility
 }
 
 export interface Worker {

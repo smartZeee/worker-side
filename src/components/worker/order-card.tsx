@@ -45,29 +45,38 @@ export default function OrderCard({ order, menuItems, onUpdateOrderStatus }: Ord
 
   const actionText = getActionText(order.status);
   
-  const timeAgo = formatDistanceToNow(new Date(order.timestamp), { addSuffix: true });
+  // Handle both new format (createdAt timestamp) and old format (timestamp string)
+  const orderTime = order.createdAt?.toDate ? order.createdAt.toDate() : 
+                    order.timestamp ? new Date(order.timestamp) : new Date();
+  const timeAgo = formatDistanceToNow(orderTime, { addSuffix: true });
 
   return (
     <Card className={`flex flex-col justify-between shadow-lg transition-all hover:shadow-primary/20 ${statusColors[order.status]}`}>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl font-bold">Table {order.tableNumber}</CardTitle>
+          <CardTitle className="text-2xl font-bold">{order.customerName}</CardTitle>
           <div className="text-xs text-muted-foreground">{timeAgo}</div>
         </div>
         <CardDescription>Order ID: {order.id}</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
-        {order.items.map((item, index) => {
-          const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
-          return (
-            <div key={index} className="flex items-center justify-between gap-4">
-              <span className="font-medium">{menuItem?.name || 'Unknown Item'}</span>
-              <span className="text-2xl font-bold text-accent-foreground">
-                {item.quantity}x
-              </span>
+        {order.items.map((item, index) => (
+          <div key={index} className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <span className="font-medium">{item.name}</span>
+              <span className="text-xs text-muted-foreground ml-2">₹{item.price}</span>
             </div>
-          );
-        })}
+            <span className="text-2xl font-bold text-accent-foreground">
+              {item.quantity}x
+            </span>
+          </div>
+        ))}
+        <div className="pt-2 border-t">
+          <div className="flex justify-between items-center">
+            <span className="font-semibold">Total:</span>
+            <span className="text-lg font-bold">₹{order.total?.toFixed(2)}</span>
+          </div>
+        </div>
       </CardContent>
       {actionText && (
         <CardFooter>

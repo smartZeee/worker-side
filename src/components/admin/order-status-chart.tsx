@@ -19,10 +19,12 @@ interface OrderStatusChartProps {
 
 export default function OrderStatusChart({ orders }: OrderStatusChartProps) {
   const chartData = React.useMemo(() => {
+    const pending = orders.filter((order) => order.status === 'Pending').length;
+    const inProgress = orders.filter((order) => order.status === 'In Progress').length;
     const completed = orders.filter((order) => order.status === 'Completed').length;
-    const active = orders.length - completed;
     return [
-      { status: 'active', count: active, fill: 'var(--color-active)' },
+      { status: 'pending', count: pending, fill: 'var(--color-pending)' },
+      { status: 'inProgress', count: inProgress, fill: 'var(--color-inProgress)' },
       { status: 'completed', count: completed, fill: 'var(--color-completed)' },
     ];
   }, [orders]);
@@ -31,8 +33,12 @@ export default function OrderStatusChart({ orders }: OrderStatusChartProps) {
     count: {
       label: 'Orders',
     },
-    active: {
-      label: 'Active',
+    pending: {
+      label: 'Pending',
+      color: 'hsl(var(--chart-3))',
+    },
+    inProgress: {
+      label: 'In Progress',
       color: 'hsl(var(--chart-2))',
     },
     completed: {
@@ -63,7 +69,7 @@ export default function OrderStatusChart({ orders }: OrderStatusChartProps) {
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
         <CardTitle>Order Status</CardTitle>
-        <CardDescription>Active vs. Completed Orders</CardDescription>
+        <CardDescription>Pending vs. In Progress vs. Completed</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
