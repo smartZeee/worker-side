@@ -45,9 +45,36 @@ export default function OrderCard({ order, menuItems, onUpdateOrderStatus }: Ord
 
   const actionText = getActionText(order.status);
   
-  // Handle both new format (createdAt timestamp) and old format (timestamp string)
-  const orderTime = order.createdAt?.toDate ? order.createdAt.toDate() : 
-                    order.timestamp ? new Date(order.timestamp) : new Date();
+  // Safely parse order time from various formats
+  const getOrderTime = (): Date => {
+    try {
+      // Try Firestore timestamp with toDate method
+      if (order.createdAt && typeof order.createdAt.toDate === 'function') {
+        const date = order.createdAt.toDate();
+        if (!isNaN(date.getTime())) return date;
+      }
+      // Try if createdAt is already a Date object
+      if (order.createdAt instanceof Date && !isNaN(order.createdAt.getTime())) {
+        return order.createdAt;
+      }
+      // Try timestamp string
+      if (order.timestamp) {
+        const date = new Date(order.timestamp);
+        if (!isNaN(date.getTime())) return date;
+      }
+      // Try createdAt as any other value
+      if (order.createdAt) {
+        const date = new Date(order.createdAt);
+        if (!isNaN(date.getTime())) return date;
+      }
+    } catch (e) {
+      console.error('Error parsing order time:', e);
+    }
+    // Fallback to current time
+    return new Date();
+  };
+  
+  const orderTime = getOrderTime();
   const timeAgo = formatDistanceToNow(orderTime, { addSuffix: true });
 
   return (

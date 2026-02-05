@@ -40,10 +40,33 @@ const statusBadgeColors: Record<OrderStatus, string> = {
 
 export default function OrderGrid({ orders, menuItems, onUpdateOrderStatus }: OrderGridProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Safely parse order time
+  const getOrderTime = (order: Order): Date => {
+    try {
+      if (order.createdAt && typeof order.createdAt.toDate === 'function') {
+        const date = order.createdAt.toDate();
+        if (!isNaN(date.getTime())) return date;
+      }
+      if (order.createdAt instanceof Date && !isNaN(order.createdAt.getTime())) {
+        return order.createdAt;
+      }
+      if (order.timestamp) {
+        const date = new Date(order.timestamp);
+        if (!isNaN(date.getTime())) return date;
+      }
+      if (order.createdAt) {
+        const date = new Date(order.createdAt);
+        if (!isNaN(date.getTime())) return date;
+      }
+    } catch (e) {
+      console.error('Error parsing order time:', e);
+    }
+    return new Date();
+  };
+  
   const sortedOrders = [...orders].sort((a, b) => {
-    const timeA = a.createdAt?.toDate ? a.createdAt.toDate() : a.timestamp ? new Date(a.timestamp) : new Date();
-    const timeB = b.createdAt?.toDate ? b.createdAt.toDate() : b.timestamp ? new Date(b.timestamp) : new Date();
-    return timeA.getTime() - timeB.getTime();
+    return getOrderTime(a).getTime() - getOrderTime(b).getTime();
   });
 
   const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
@@ -123,11 +146,7 @@ export default function OrderGrid({ orders, menuItems, onUpdateOrderStatus }: Or
                         </ul>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(
-                          order.createdAt?.toDate ? order.createdAt.toDate() : 
-                          order.timestamp ? new Date(order.timestamp) : new Date(),
-                          { addSuffix: true }
-                        )}
+                        {formatDistanceToNow(getOrderTime(order), { addSuffix: true })}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={statusBadgeColors[order.status] || ''}>{order.status}</Badge>
