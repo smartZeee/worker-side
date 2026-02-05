@@ -28,7 +28,7 @@ export default function Home() {
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'menu_items') : null, [firestore]);
   const { data: menuItems } = useCollection<MenuItem>(menuItemsQuery);
   
-  const workersQuery = useMemoFirebase(() => (firestore && currentView === 'admin') ? collection(firestore, 'workers') : null, [firestore, currentView]);
+  const workersQuery = useMemoFirebase(() => (firestore && user && currentView === 'admin') ? collection(firestore, 'workers') : null, [firestore, user, currentView]);
   const { data: workers } = useCollection<Worker>(workersQuery);
 
   const ordersQuery = useMemoFirebase(
@@ -89,41 +89,49 @@ export default function Home() {
     const upperId = id.toUpperCase();
     const email = `${upperId}@culinaryflow.app`;
 
+    // First, optimistically try to create a user.
+    // This is part of the "first-time login" flow.
     try {
-      await signInWithEmailAndPassword(auth, email, password_from_user);
-    } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
+      await createUserWithEmailAndPassword(auth, email, password_from_user);
+      // If successful, the user is created and signed in.
+      // The useEffect hook will then handle validating their worker role.
+    } catch (creationError: any) {
+      // If user creation fails, it's likely because the user already exists.
+      if (creationError.code === 'auth/email-already-in-use') {
+        // Now, try to sign in the existing user.
         try {
-          const workerDocRef = doc(firestore, 'workers', upperId);
-          const workerDoc = await getDoc(workerDocRef);
-          if (workerDoc.exists()) {
-             await createUserWithEmailAndPassword(auth, email, password_from_user);
-          } else {
-             toast({
+          await signInWithEmailAndPassword(auth, email, password_from_user);
+          // If successful, the useEffect hook will take over.
+        } catch (signInError: any) {
+          // If sign-in fails, it's most likely an incorrect password.
+          if (signInError.code === 'auth/invalid-credential') {
+            toast({
               variant: 'destructive',
               title: 'Login Failed',
-              description: 'This Employee ID does not exist in the system.',
+              description: 'Incorrect password. Please try again.',
+            });
+          } else {
+            // Handle other potential sign-in errors
+            toast({
+              variant: 'destructive',
+              title: 'Login Error',
+              description: signInError.message || 'An unexpected error occurred during sign-in.',
             });
           }
-        } catch (e) {
-           toast({
-            variant: 'destructive',
-            title: 'Login Error',
-            description: 'Could not verify Employee ID.',
-          });
         }
-      } else if (error.code === 'auth/invalid-credential') {
-         toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: 'Incorrect password. Please try again.',
-        });
+      } else if (creationError.code === 'auth/weak-password') {
+          toast({
+              variant: 'destructive',
+              title: 'Login Failed',
+              description: 'Password is too weak. It must be at least 6 characters.',
+            });
       }
       else {
+        // Handle other potential creation errors
         toast({
           variant: 'destructive',
-          title: 'Login Failed',
-          description: error.message || "An unexpected error occurred.",
+          title: 'Login Error',
+          description: creationError.message || 'An unexpected error occurred during account setup.',
         });
       }
     }
@@ -139,7 +147,6 @@ export default function Home() {
   
   const handleAddWorker = (newWorker: Omit<Worker, 'id'>) => {
     const docRef = doc(firestore, 'workers', newWorker.workerId);
-    // Use setDocumentNonBlocking to create the document with a specific ID
     setDocumentNonBlocking(docRef, newWorker, {});
      toast({
       title: "Worker Added",
