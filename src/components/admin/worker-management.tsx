@@ -4,7 +4,6 @@ import type { Worker } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AddWorkerDialog } from "./add-worker-dialog";
 import {
   Table,
   TableBody,
@@ -18,11 +17,10 @@ import { ScrollArea } from "../ui/scroll-area";
 
 interface WorkerManagementProps {
   workers: Worker[];
-  onAddWorker: (worker: Omit<Worker, 'id'>) => void;
   onUpdateWorker: (worker: Partial<Worker>) => void;
 }
 
-export default function WorkerManagement({ workers, onAddWorker, onUpdateWorker }: WorkerManagementProps) {
+export default function WorkerManagement({ workers, onUpdateWorker }: WorkerManagementProps) {
 
   const handleToggle = (worker: Worker, checked: boolean) => {
     onUpdateWorker({ id: worker.id, isActive: checked });
@@ -35,14 +33,11 @@ export default function WorkerManagement({ workers, onAddWorker, onUpdateWorker 
     delivery: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
   }
   
-  const existingWorkerIds = workers.map(w => w.workerId);
-
   return (
     <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-3xl font-headline">Worker Management</CardTitle>
-          <AddWorkerDialog onAddWorker={onAddWorker} existingWorkerIds={existingWorkerIds} />
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">

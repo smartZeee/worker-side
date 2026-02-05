@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -50,18 +49,6 @@ export default function Home() {
     setCurrentView('login');
   };
 
-  const handleAddWorker = (newWorker: Omit<Worker, 'id'>) => {
-    const workerToAdd: Worker = {
-      ...newWorker,
-      id: newWorker.workerId, // Use workerId as id
-    };
-    setWorkers(prev => [...prev, workerToAdd]);
-    toast({
-      title: "Worker Added",
-      description: `${newWorker.name} has been added.`,
-    });
-  };
-
   const handleUpdateWorker = (updatedWorker: Partial<Worker>) => {
     if (!updatedWorker.id) return;
     setWorkers(prev => prev.map(w => w.id === updatedWorker.id ? { ...w, ...updatedWorker } : w));
@@ -105,7 +92,6 @@ export default function Home() {
             onLogout={handleLogout}
             onUpdateMenuItem={handleUpdateMenuItem}
             onAddMenuItem={handleAddMenuItem}
-            onAddWorker={handleAddWorker}
             onUpdateWorker={handleUpdateWorker}
             employeeId={employeeId || ''}
           />

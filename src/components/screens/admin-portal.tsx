@@ -11,7 +11,6 @@ interface AdminPortalProps {
   onLogout: () => void;
   onUpdateMenuItem: (item: Partial<MenuItem>) => void;
   onAddMenuItem: (item: Omit<MenuItem, 'id'>) => void;
-  onAddWorker: (worker: Omit<Worker, 'id'>) => void;
   onUpdateWorker: (worker: Partial<Worker>) => void;
   employeeId: string;
 }
@@ -23,7 +22,6 @@ export default function AdminPortal({
   onLogout,
   onUpdateMenuItem,
   onAddMenuItem,
-  onAddWorker,
   onUpdateWorker,
   employeeId,
 }: AdminPortalProps) {
@@ -42,7 +40,6 @@ export default function AdminPortal({
             />
             <WorkerManagement 
               workers={workers}
-              onAddWorker={onAddWorker}
               onUpdateWorker={onUpdateWorker}
             />
           </div>
