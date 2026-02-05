@@ -40,7 +40,7 @@
         },
         "quantity": {
           "type": "number",
-          "description": "Indicates the available stock for the dish."
+          "description": "Indicates the available stock for the dish. A quantity > 0 means the item is available."
         },
         "createdAt": {
           "type": "string",
@@ -118,23 +118,33 @@
       "type": "object",
       "description": "Represents a kitchen worker.",
       "properties": {
-        "id": {
+        "workerId": {
           "type": "string",
-          "description": "Unique identifier for the worker."
+          "description": "The Login ID. (e.g., \"WK001\", \"WK002\"). Should be unique and is used as the document ID."
         },
         "name": {
           "type": "string",
-          "description": "Name of the worker."
+          "description": "Display name for the dashboard (e.g., \"Chef Rahul\")."
         },
         "role": {
           "type": "string",
-          "description": "Role of the worker (e.g., cook, server)."
+          "description": "Defines permissions.",
+          "enum": ["kitchen", "manager", "delivery"]
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Set to true if they are currently employed. Set to false to block access without deleting the record."
+        },
+        "phone": {
+          "type": "string",
+          "description": "In case the Admin needs to contact them urgently."
         }
       },
       "required": [
-        "id",
+        "workerId",
         "name",
-        "role"
+        "role",
+        "isActive"
       ]
     },
     "Admin": {

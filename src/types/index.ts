@@ -29,3 +29,12 @@ export interface Order {
   timestamp: string;
   workerId: string;
 }
+
+export interface Worker {
+    id: string; // The document ID, which is the workerId
+    workerId: string;
+    name: string;
+    role: "kitchen" | "manager" | "delivery";
+    isActive: boolean;
+    phone?: string;
+}
