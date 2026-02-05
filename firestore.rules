@@ -91,6 +91,15 @@ service cloud.firestore {
     }
 
     /**
+     * @description Admin collection for admin login credentials.
+     * @path /admin/{adminId}
+     * @principle Allow all operations for development
+     */
+    match /admin/{adminId} {
+      allow read, write: if true; // Allow all operations for development
+    }
+
+    /**
      * @description Employee/Worker profiles. Managed by Admins, but readable by the worker themselves.
      * @path /employee/{workerId}
      * @allow (get) A worker with ID 'WK001' reads their own profile at /employee/WK001.

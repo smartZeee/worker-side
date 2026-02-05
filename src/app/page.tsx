@@ -169,7 +169,7 @@ export default function Home() {
       const employeeData = employeeSnapshot.docs.find(doc => {
         const data = doc.data();
         console.log('Checking employee doc:', data);
-        return data.workerId === upperId;
+        return data.workerId?.toUpperCase() === upperId;
       });
       
       if (!employeeData) {
@@ -186,6 +186,7 @@ export default function Home() {
       
       // Check if password matches
       if (employee.password !== password_from_user) {
+        console.log('Password mismatch. Expected:', employee.password, 'Got:', password_from_user);
         toast({
           variant: 'destructive',
           title: 'Login Failed',
