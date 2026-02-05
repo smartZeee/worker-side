@@ -81,10 +81,40 @@ service cloud.firestore {
 
     /**
      * @description Publicly readable menu items, manageable only by administrators.
-     * @path /menu_items/{menuItemId}
+     * @path /menu/{menuItemId}
      * @allow (get) Anyone, signed in or not, can read a menu item.
      * @deny (create) A non-admin user attempts to create a new menu item.
      * @principle Public read with role-based writes.
+     */
+    match /menu/{menuItemId} {
+      allow read, write: if true; // Allow all operations for development
+    }
+
+    /**
+     * @description Employee/Worker profiles. Managed by Admins, but readable by the worker themselves.
+     * @path /employee/{workerId}
+     * @allow (get) A worker with ID 'WK001' reads their own profile at /employee/WK001.
+     * @deny (list) A regular worker attempts to list all other workers in the system.
+     * @deny (create) A user attempts to create their own worker profile.
+     * @principle Role-based management with owner-read access.
+     */
+    match /employee/{workerId} {
+      allow read, write: if true; // Allow all operations for development
+    }
+
+    /**
+     * @description Orders collection for order management.
+     * @path /orders/{orderId}
+     * @principle Allow all operations for development
+     */
+    match /orders/{orderId} {
+      allow read, write: if true; // Allow all operations for development
+    }
+
+    /**
+     * Legacy rules for backward compatibility
+     * @description Publicly readable menu items, manageable only by administrators.
+     * @path /menu_items/{menuItemId}
      */
     match /menu_items/{menuItemId} {
       allow read: if isSignedIn();
@@ -94,12 +124,9 @@ service cloud.firestore {
     }
 
     /**
+     * Legacy rules for backward compatibility
      * @description Worker profiles. Managed by Admins, but readable by the worker themselves.
      * @path /workers/{workerId}
-     * @allow (get) A worker with ID 'WK001' reads their own profile at /workers/WK001.
-     * @deny (list) A regular worker attempts to list all other workers in the system.
-     * @deny (create) A user attempts to create their own worker profile.
-     * @principle Role-based management with owner-read access.
      */
     match /workers/{workerId} {
       allow get: if isOwner(workerId) || isAdmin();

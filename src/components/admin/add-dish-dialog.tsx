@@ -18,6 +18,9 @@ import { PlusCircle } from "lucide-react";
 import type { MenuItem, Tag } from "@/types";
 import MenuItemCard from "@/components/shared/menu-item-card";
 import { Textarea } from "@/components/ui/textarea";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { initializeFirebase } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddDishDialogProps {
   onAddMenuItem: (item: Omit<MenuItem, 'id'>) => void;
@@ -36,6 +39,9 @@ const initialDishState: Partial<MenuItem> = {
 export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
   const [newDish, setNewDish] = useState<Partial<MenuItem>>(initialDishState);
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { firestore } = initializeFirebase();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -46,19 +52,43 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
     setNewDish((prev) => ({ ...prev, tags: [value as Tag] }));
   };
   
-  const handleSubmit = () => {
-    const dishToAdd: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'> = {
-      name: newDish.name || 'Unnamed Dish',
-      price: newDish.price || 0,
-      category: newDish.category || 'Uncategorized',
-      description: newDish.description,
-      imageUrl: newDish.imageUrl || `https://picsum.photos/seed/${Date.now()}/600/400`,
-      tags: newDish.tags || ['Veg'],
-      quantity: newDish.quantity ?? 10,
-    };
-    onAddMenuItem(dishToAdd as Omit<MenuItem, 'id'>);
-    setNewDish(initialDishState);
-    setIsOpen(false);
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const dishToAdd = {
+        name: newDish.name || 'Unnamed Dish',
+        price: newDish.price || 0,
+        category: newDish.category || 'Uncategorized',
+        description: newDish.description || '',
+        imageUrl: newDish.imageUrl || `https://picsum.photos/seed/${Date.now()}/600/400`,
+        tags: newDish.tags || ['Veg'],
+        quantity: newDish.quantity ?? 10,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      // Add to Firestore 'menu' collection
+      await addDoc(collection(firestore, 'menu'), dishToAdd);
+      
+      toast({
+        title: 'Success',
+        description: 'Dish added successfully!',
+      });
+      
+      setNewDish(initialDishState);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error adding dish:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to add dish. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const isFormValid = newDish.name && newDish.price && newDish.category;
@@ -118,7 +148,9 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleSubmit} disabled={!isFormValid}>Add Dish</Button>
+            <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Dish'}
+            </Button>
           </DialogFooter>
         </div>
         <div className="flex flex-col items-center justify-center bg-secondary/30 rounded-lg p-4">

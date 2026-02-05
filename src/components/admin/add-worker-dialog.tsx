@@ -22,6 +22,9 @@ import {
 } from "@/components/ui/select";
 import { PlusCircle } from "lucide-react";
 import type { Worker } from "@/types";
+import { doc, setDoc, collection, getDocs } from "firebase/firestore";
+import { initializeFirebase } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddWorkerDialogProps {
   onAddWorker: (worker: Omit<Worker, 'id'>) => void;
@@ -39,6 +42,9 @@ export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDia
   const [newWorker, setNewWorker] = useState(initialWorkerState);
   const [isOpen, setIsOpen] = useState(false);
   const [idError, setIdError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { firestore } = initializeFirebase();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -59,16 +65,39 @@ export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDia
     setNewWorker((prev) => ({ ...prev, role: value }));
   };
 
-  const handleSubmit = () => {
-    if (idError) return;
+  const handleSubmit = async () => {
+    if (idError || isSubmitting) return;
+    setIsSubmitting(true);
 
-    const workerToAdd: Omit<Worker, 'id'> = {
-      ...newWorker,
-      isActive: true,
-    };
-    onAddWorker(workerToAdd);
-    setNewWorker(initialWorkerState);
-    setIsOpen(false);
+    try {
+      const workerData = {
+        workerId: newWorker.workerId,
+        name: newWorker.name,
+        role: newWorker.role,
+        phone: newWorker.phone || '',
+        isActive: true,
+      };
+
+      // Add to Firestore 'employee' collection using workerId as document ID
+      await setDoc(doc(firestore, 'employee', newWorker.workerId), workerData);
+      
+      toast({
+        title: 'Success',
+        description: `Worker ${newWorker.name} added successfully!`,
+      });
+      
+      setNewWorker(initialWorkerState);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error adding worker:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to add worker. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isFormValid = newWorker.workerId && newWorker.name && newWorker.role && !idError;
@@ -119,7 +148,9 @@ export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDia
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={!isFormValid}>Add Worker</Button>
+          <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting}>
+            {isSubmitting ? 'Adding...' : 'Add Worker'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

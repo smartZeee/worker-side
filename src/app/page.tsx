@@ -6,7 +6,8 @@ import type { MenuItem, Order, Worker } from '@/types';
 import LoginScreen from '@/components/screens/login-screen';
 import AdminPortal from '@/components/screens/admin-portal';
 import WorkerPortal from '@/components/screens/worker-portal';
-import { mockMenuItems, mockActiveOrders, mockWorkers } from '@/lib/mock-data';
+import { initializeFirebase } from '@/firebase';
+import { collection, doc, updateDoc, deleteDoc, getDocs, query } from 'firebase/firestore';
 
 type View = 'login' | 'admin' | 'worker';
 
@@ -16,10 +17,60 @@ export default function Home() {
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
-  // Use mock data
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(mockMenuItems);
-  const [workers, setWorkers] = useState<Worker[]>(mockWorkers);
-  const [activeOrders, setActiveOrders] = useState<Order[]>(mockActiveOrders);
+  // Firestore data
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const { firestore } = initializeFirebase();
+
+  // Load data from Firestore
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Load menu items
+        const menuSnapshot = await getDocs(collection(firestore, 'menu'));
+        const menuData = menuSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as MenuItem[];
+        setMenuItems(menuData);
+
+        // Load workers/employees
+        const employeeSnapshot = await getDocs(collection(firestore, 'employee'));
+        const employeeData = employeeSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Worker[];
+        setWorkers(employeeData);
+
+        // Load orders (optional)
+        const ordersSnapshot = await getDocs(collection(firestore, 'orders'));
+        const ordersData = ordersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Order[];
+        setActiveOrders(ordersData);
+        
+      } catch (error) {
+        console.error('Error loading data from Firestore:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load data from database.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isClient) {
+      loadData();
+    }
+  }, [isClient, firestore, toast]);
 
   useEffect(() => {
     setIsClient(true);
@@ -49,32 +100,90 @@ export default function Home() {
     setCurrentView('login');
   };
 
-  const handleUpdateWorker = (updatedWorker: Partial<Worker>) => {
+  const handleUpdateWorker = async (updatedWorker: Partial<Worker>) => {
     if (!updatedWorker.id) return;
-    setWorkers(prev => prev.map(w => w.id === updatedWorker.id ? { ...w, ...updatedWorker } : w));
+    
+    try {
+      const workerRef = doc(firestore, 'employee', updatedWorker.id);
+      await updateDoc(workerRef, updatedWorker);
+      setWorkers(prev => prev.map(w => w.id === updatedWorker.id ? { ...w, ...updatedWorker } : w));
+      
+      toast({
+        title: 'Success',
+        description: 'Worker updated successfully!',
+      });
+    } catch (error) {
+      console.error('Error updating worker:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update worker.',
+      });
+    }
   };
 
-  const handleUpdateMenuItem = (updatedItem: Partial<MenuItem>) => {
+  const handleUpdateMenuItem = async (updatedItem: Partial<MenuItem>) => {
     if (!updatedItem.id) return;
-    setMenuItems(prev => prev.map(item => item.id === updatedItem.id ? { ...item, ...updatedItem, updatedAt: new Date().toISOString() } : item));
+    
+    try {
+      const itemRef = doc(firestore, 'menu', updatedItem.id);
+      await updateDoc(itemRef, { ...updatedItem, updatedAt: new Date().toISOString() });
+      setMenuItems(prev => prev.map(item => item.id === updatedItem.id ? { ...item, ...updatedItem, updatedAt: new Date().toISOString() } : item));
+      
+      toast({
+        title: 'Success',
+        description: 'Menu item updated successfully!',
+      });
+    } catch (error) {
+      console.error('Error updating menu item:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update menu item.',
+      });
+    }
   };
 
   const handleAddMenuItem = (newItem: Omit<MenuItem, 'id'>) => {
-    const itemToAdd: MenuItem = {
-      ...newItem,
-      id: (Math.random() * 10000).toString(), // simple id generation
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    // This function is now handled directly by AddDishDialog writing to Firestore
+    // We'll refresh the data by re-fetching
+    const refreshMenu = async () => {
+      const menuSnapshot = await getDocs(collection(firestore, 'menu'));
+      const menuData = menuSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as MenuItem[];
+      setMenuItems(menuData);
     };
-    setMenuItems(prev => [...prev, itemToAdd]);
+    refreshMenu();
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
-    setActiveOrders(prev => prev.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+    try {
+      const orderRef = doc(firestore, 'orders', orderId);
+      await updateDoc(orderRef, { status: newStatus });
+      setActiveOrders(prev => prev.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
+      
+      toast({
+        title: 'Success',
+        description: 'Order status updated!',
+      });
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update order status.',
+      });
+    }
   };
   
-  if (!isClient) {
-    return null; // Or a loading spinner
+  if (!isClient || isLoading) {
+    return (
+      <main className="min-h-screen w-full bg-background text-foreground flex flex-col items-center justify-center">
+        <p>Loading...</p>
+      </main>
+    );
   }
 
   const renderView = () => {
