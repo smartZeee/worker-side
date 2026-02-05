@@ -1,0 +1,142 @@
+/**
+ * # Firestore Security Rules
+ *
+ * ## Core Philosophy
+ * This ruleset enforces a strict role-based access control model for a food app management portal.
+ * There are two primary roles: Admins and Workers. A user's role is determined by the existence
+ * of their UID in either the `/roles_admin` or `/workers` collection.
+ * - Admins have broad management capabilities over menu items and worker profiles.
+ * - Workers have ownership-based access, restricted to managing their own orders.
+ *
+ * ## Data Structure
+ * The data is organized to align with this role-based model:
+ * - `/menu_items`: A top-level collection for the restaurant menu. It is publicly readable.
+ * - `/workers`: A top-level collection for worker profiles.
+ * - `/workers/{workerId}/orders`: A subcollection of orders nested under the specific worker
+ *   they are assigned to, enforcing a clear ownership hierarchy.
+ * - `/roles_admin`: A top-level collection that acts as an access control list for administrators.
+ *
+ * ## Key Security Decisions
+ * - **Role-Based Access**: Authorization is primarily determined by checking for a user's document
+ *   in `/roles_admin/{uid}` or `/workers/{uid}`. This is fast, secure, and avoids costly `get`
+ *   calls in rules for most operations.
+ * - **Public Menu**: The `/menu_items` collection is publicly readable by anyone, including
+ *   unauthenticated users, but is writable only by Admins.
+ * - **Worker Data Privacy**: Workers can only access data within their own document tree
+ *   (e.g., `/workers/{their-own-uid}/...`). They cannot see other workers' data.
+ * - **Admin Oversight**: Admins have read access to all worker data and orders for management
+ *   and oversight purposes.
+ * - **No User Listing**: Listing all workers is restricted to Admins to protect worker privacy.
+ *
+ * ## Denormalization for Authorization
+ * The `Order` document contains a `workerId` field. When creating an order under the path
+ * `/workers/{workerId}/orders/{orderId}`, the rules enforce that the `workerId` in the
+ * document data must match the `workerId` from the path. This creates a permanent,
+ * immutable link between an order and its owner, simplifying security checks.
+ *
+ * ## Structural Segregation
+ * Roles are managed through separate top-level collections (`/roles_admin`, `/workers`).
+ * This clearly separates the concerns of different user types and makes the rules for
+ * each path simpler and more secure than using a single "users" collection with a role field.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for concise and readable rules
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user is an administrator.
+     * Admin status is granted by the existence of a document in the /roles_admin collection
+     * where the document ID matches the user's UID.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the document ID matches the authenticated user's UID.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership on an existing document. Used for update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+    
+    /**
+     * A generic check to ensure a document exists before an update or delete.
+     */
+    function documentExists() {
+      return resource != null;
+    }
+
+    /**
+     * @description Publicly readable menu items, manageable only by administrators.
+     * @path /menu_items/{menuItemId}
+     * @allow (get) Anyone, signed in or not, can read a menu item.
+     * @deny (create) A non-admin user attempts to create a new menu item.
+     * @principle Public read with role-based writes.
+     */
+    match /menu_items/{menuItemId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && documentExists();
+      allow delete: if isAdmin() && documentExists();
+    }
+
+    /**
+     * @description Worker profiles. Managed by Admins, but readable by the worker themselves.
+     * @path /workers/{workerId}
+     * @allow (get) A worker with UID 'worker123' reads their own profile at /workers/worker123.
+     * @deny (list) A regular worker attempts to list all other workers in the system.
+     * @deny (create) A user attempts to create their own worker profile.
+     * @principle Role-based management with owner-read access.
+     */
+    match /workers/{workerId} {
+      allow get: if isOwner(workerId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && documentExists();
+      allow delete: if isAdmin() && documentExists();
+
+      /**
+       * @description Orders assigned to a specific worker.
+       * @path /workers/{workerId}/orders/{orderId}
+       * @allow (create) Worker 'worker123' creates a new order for themselves.
+       * @deny (get) Worker 'worker456' tries to read an order belonging to 'worker123'.
+       * @principle Enforces document ownership for all operations, with Admin read-only oversight.
+       */
+      match /orders/{orderId} {
+        allow get: if isOwner(workerId) || isAdmin();
+        allow list: if isOwner(workerId) || isAdmin();
+        allow create: if isOwner(workerId) && request.resource.data.workerId == workerId;
+        allow update: if isExistingOwner(workerId) && request.resource.data.workerId == resource.data.workerId;
+        allow delete: if isExistingOwner(workerId);
+      }
+    }
+
+    /**
+     * @description Admin role collection. Only other Admins can manage this list.
+     * @path /roles_admin/{adminId}
+     * @allow (create) An existing admin adds a new user's UID to make them an admin.
+     * @deny (create) A non-admin user attempts to add their own UID to this collection.
+     * @principle Restricts management of authorization roles to privileged users.
+     */
+    match /roles_admin/{adminId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && documentExists();
+      allow delete: if isAdmin() && documentExists();
+    }
+  }
+}
