@@ -87,8 +87,7 @@ service cloud.firestore {
      * @principle Public read with role-based writes.
      */
     match /menu_items/{menuItemId} {
-      allow get: if true;
-      allow list: if true;
+      allow read: if isSignedIn();
       allow create: if isAdmin();
       allow update: if isAdmin() && documentExists();
       allow delete: if isAdmin() && documentExists();
