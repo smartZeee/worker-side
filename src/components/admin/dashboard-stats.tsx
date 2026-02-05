@@ -1,8 +1,8 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Utensils, ShoppingCart } from "lucide-react";
-import type { MenuItem, Order } from "@/types";
+import { DollarSign, Utensils, ShoppingCart, Users } from "lucide-react";
+import type { MenuItem, Order, Worker } from "@/types";
 import OrderStatusChart from "./order-status-chart";
 import {
   Select,
@@ -16,12 +16,13 @@ import { isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from 'date-fns
 
 interface DashboardStatsProps {
   menuItems: MenuItem[];
+  workers: Worker[];
   activeOrders: Order[];
 }
 
 type RevenuePeriod = "daily" | "weekly" | "monthly" | "yearly" | "all";
 
-export default function DashboardStats({ menuItems, activeOrders }: DashboardStatsProps) {
+export default function DashboardStats({ menuItems, workers, activeOrders }: DashboardStatsProps) {
   const [revenuePeriod, setRevenuePeriod] = useState<RevenuePeriod>("all");
 
   const completedOrders = activeOrders.filter(order => order.status === 'Completed');
@@ -96,16 +97,16 @@ export default function DashboardStats({ menuItems, activeOrders }: DashboardSta
           <p className="text-xs text-muted-foreground">Pending, In Progress, or Ready</p>
         </CardContent>
       </Card>
-      <Card>
+       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Menu Items</CardTitle>
-          <Utensils className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Total Workers</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="text-center pt-4">
           <div className="flex items-center justify-center w-24 h-24 rounded-full bg-muted mx-auto">
-              <span className="text-5xl font-bold">{menuItems.length}</span>
+              <span className="text-5xl font-bold">{workers.length}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Total dishes in the system</p>
+          <p className="text-xs text-muted-foreground mt-2">Total staff in the system</p>
         </CardContent>
       </Card>
       <OrderStatusChart orders={activeOrders} />

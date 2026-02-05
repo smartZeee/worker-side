@@ -166,11 +166,11 @@
       },
       "description": "Stores worker information. Used for authentication and assigning orders. The document ID must be the same as the 'workerId' field."
     },
-    "/workers/{workerId}/orders/{orderId}": {
+    "/orders/{orderId}": {
       "schema": {
         "$ref": "#/entities/Order"
       },
-      "description": "Stores order information associated with a specific worker. Includes the `workerId` for authorization."
+      "description": "Stores all orders in a single collection for easier querying by admins."
     }
   }
 }

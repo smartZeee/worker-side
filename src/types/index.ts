@@ -34,7 +34,7 @@ export interface Worker {
     id: string; // The document ID, which is the workerId
     workerId: string;
     name: string;
-    role: "kitchen" | "manager" | "delivery";
+    role: "kitchen" | "manager" | "delivery" | "admin";
     isActive: boolean;
     phone?: string;
 }

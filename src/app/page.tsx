@@ -8,8 +8,8 @@ import LoginScreen from '@/components/screens/login-screen';
 import AdminPortal from '@/components/screens/admin-portal';
 import WorkerPortal from '@/components/screens/worker-portal';
 import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 type View = 'login' | 'admin' | 'worker';
@@ -25,8 +25,11 @@ export default function Home() {
   const auth = useAuth();
   const { user } = useAuth();
 
-  const menuItemsQuery = useMemoFirebase(() => collection(firestore, 'menu_items'), [firestore]);
+  const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'menu_items') : null, [firestore]);
   const { data: menuItems } = useCollection<MenuItem>(menuItemsQuery);
+  
+  const workersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'workers') : null, [firestore]);
+  const { data: workers } = useCollection<Worker>(workersQuery);
 
   const ordersQuery = useMemoFirebase(
     () => (employeeId ? collection(firestore, 'workers', employeeId, 'orders') : null),
@@ -40,7 +43,7 @@ export default function Home() {
 
   useEffect(() => {
     if (user && firestore) {
-      const workerIdFromEmail = user.email?.split('@')[0];
+      const workerIdFromEmail = user.email?.split('@')[0].toUpperCase();
       if (!workerIdFromEmail) {
         handleLogout();
         return;
@@ -64,7 +67,7 @@ export default function Home() {
           setEmployeeId(workerIdFromEmail);
           localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, workerIdFromEmail);
         } else {
-          toast({ variant: 'destructive', title: 'Login Failed', description: 'No valid worker profile found.' });
+          toast({ variant: 'destructive', title: 'Login Failed', description: 'No valid worker profile found for this ID.' });
           handleLogout();
         }
       }).catch(error => {
@@ -87,24 +90,36 @@ export default function Home() {
     const email = `${upperId}@culinaryflow.app`;
 
     try {
-      // First, just try to sign in. The useEffect will handle the rest.
       await signInWithEmailAndPassword(auth, email, password_from_user);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
-        // If the user doesn't exist in Auth, we'll try to create them.
-        // The useEffect will then validate if they are a valid worker in Firestore.
         try {
-          await createUserWithEmailAndPassword(auth, email, password_from_user);
-          // On success, the `user` state will change, and the useEffect will run.
-        } catch (signUpError: any) {
-          toast({
+          const workerDocRef = doc(firestore, 'workers', upperId);
+          const workerDoc = await getDoc(workerDocRef);
+          if (workerDoc.exists()) {
+             await createUserWithEmailAndPassword(auth, email, password_from_user);
+          } else {
+             toast({
+              variant: 'destructive',
+              title: 'Login Failed',
+              description: 'This Employee ID does not exist in the system.',
+            });
+          }
+        } catch (e) {
+           toast({
             variant: 'destructive',
-            title: 'Sign-up Failed',
-            description: 'This ID may be in use with a different password, or another error occurred.',
+            title: 'Login Error',
+            description: 'Could not verify Employee ID.',
           });
         }
-      } else {
-        // Handle other auth errors like wrong password.
+      } else if (error.code === 'auth/invalid-credential') {
+         toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Incorrect password. Please try again.',
+        });
+      }
+      else {
         toast({
           variant: 'destructive',
           title: 'Login Failed',
@@ -121,6 +136,23 @@ export default function Home() {
     setCurrentView('login');
     localStorage.removeItem(EMPLOYEE_ID_STORAGE_KEY);
   };
+  
+  const handleAddWorker = (newWorker: Omit<Worker, 'id'>) => {
+    const docRef = doc(firestore, 'workers', newWorker.workerId);
+    // Use setDocumentNonBlocking to create the document with a specific ID
+    setDocumentNonBlocking(docRef, newWorker, {});
+     toast({
+      title: "Worker Added",
+      description: `${newWorker.name} has been added to the system.`,
+    });
+  };
+
+  const handleUpdateWorker = (updatedWorker: Partial<Worker>) => {
+    if (!updatedWorker.id) return;
+    const docRef = doc(firestore, 'workers', updatedWorker.id);
+    updateDocumentNonBlocking(docRef, updatedWorker);
+  };
+
 
   const handleUpdateMenuItem = (updatedItem: Partial<MenuItem>) => {
     if (!updatedItem.id) return;
@@ -153,16 +185,20 @@ export default function Home() {
   const renderView = () => {
     const ordersToShow = activeOrders || [];
     const menuItemsToShow = menuItems || [];
+    const workersToShow = workers || [];
 
     switch (currentView) {
       case 'admin':
         return (
           <AdminPortal
             menuItems={menuItemsToShow}
+            workers={workersToShow}
             activeOrders={ordersToShow}
             onLogout={handleLogout}
             onUpdateMenuItem={handleUpdateMenuItem}
             onAddMenuItem={handleAddMenuItem}
+            onAddWorker={handleAddWorker}
+            onUpdateWorker={handleUpdateWorker}
             employeeId={employeeId || ''}
           />
         );
