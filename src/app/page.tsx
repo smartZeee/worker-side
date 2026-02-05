@@ -7,182 +7,83 @@ import type { MenuItem, Order, Worker } from '@/types';
 import LoginScreen from '@/components/screens/login-screen';
 import AdminPortal from '@/components/screens/admin-portal';
 import WorkerPortal from '@/components/screens/worker-portal';
-import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { mockMenuItems, mockActiveOrders, mockWorkers } from '@/lib/mock-data';
 
 type View = 'login' | 'admin' | 'worker';
-
-const EMPLOYEE_ID_STORAGE_KEY = 'culinaryFlowEmployeeId';
 
 export default function Home() {
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState<View>('login');
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const firestore = useFirestore();
-  const auth = useAuth();
-  const { user } = useAuth();
 
-  const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'menu_items') : null, [firestore]);
-  const { data: menuItems } = useCollection<MenuItem>(menuItemsQuery);
-  
-  const workersQuery = useMemoFirebase(() => (firestore && user && currentView === 'admin') ? collection(firestore, 'workers') : null, [firestore, user, currentView]);
-  const { data: workers } = useCollection<Worker>(workersQuery);
+  // Use mock data
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(mockMenuItems);
+  const [workers, setWorkers] = useState<Worker[]>(mockWorkers);
+  const [activeOrders, setActiveOrders] = useState<Order[]>(mockActiveOrders);
 
-  const ordersQuery = useMemoFirebase(
-    () => (employeeId ? collection(firestore, 'workers', employeeId, 'orders') : null),
-    [firestore, employeeId]
-  );
-  const { data: activeOrders } = useCollection<Order>(ordersQuery);
-  
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  useEffect(() => {
-    if (user && firestore) {
-      const workerIdFromEmail = user.email?.split('@')[0].toUpperCase();
-      if (!workerIdFromEmail) {
-        handleLogout();
-        return;
-      }
-      
-      const workerDocRef = doc(firestore, 'workers', workerIdFromEmail);
-      getDoc(workerDocRef).then(workerDoc => {
-        if (workerDoc.exists()) {
-          const workerData = workerDoc.data() as Worker;
-          if (!workerData.isActive) {
-            toast({ variant: 'destructive', title: 'Login Failed', description: 'This employee account is inactive.' });
-            handleLogout();
-            return;
-          }
-
-          if (workerData.role === 'admin') {
-            setCurrentView('admin');
-          } else {
-            setCurrentView('worker');
-          }
-          setEmployeeId(workerIdFromEmail);
-          localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, workerIdFromEmail);
-        } else {
-          toast({ variant: 'destructive', title: 'Login Failed', description: 'No valid worker profile found for this ID.' });
-          handleLogout();
-        }
-      }).catch(error => {
-        console.error("Error fetching worker profile:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch worker profile.' });
-        handleLogout();
-      });
-    } else if (!user) {
-        const savedId = localStorage.getItem(EMPLOYEE_ID_STORAGE_KEY);
-        if (savedId) {
-             handleLogout();
-        } else {
-            setCurrentView('login');
-        }
-    }
-  }, [user, firestore]);
-
-  const handleLogin = async (id: string, password_from_user: string) => {
+  const handleLogin = (id: string, password_from_user: string) => {
     const upperId = id.toUpperCase();
-    const email = `${upperId}@culinaryflow.app`;
-
-    // First, optimistically try to create a user.
-    // This is part of the "first-time login" flow.
-    try {
-      await createUserWithEmailAndPassword(auth, email, password_from_user);
-      // If successful, the user is created and signed in.
-      // The useEffect hook will then handle validating their worker role.
-    } catch (creationError: any) {
-      // If user creation fails, it's likely because the user already exists.
-      if (creationError.code === 'auth/email-already-in-use') {
-        // Now, try to sign in the existing user.
-        try {
-          await signInWithEmailAndPassword(auth, email, password_from_user);
-          // If successful, the useEffect hook will take over.
-        } catch (signInError: any) {
-          // If sign-in fails, it's most likely an incorrect password.
-          if (signInError.code === 'auth/invalid-credential') {
-            toast({
-              variant: 'destructive',
-              title: 'Login Failed',
-              description: 'Incorrect password. Please try again.',
-            });
-          } else {
-            // Handle other potential sign-in errors
-            toast({
-              variant: 'destructive',
-              title: 'Login Error',
-              description: signInError.message || 'An unexpected error occurred during sign-in.',
-            });
-          }
-        }
-      } else if (creationError.code === 'auth/weak-password') {
-          toast({
-              variant: 'destructive',
-              title: 'Login Failed',
-              description: 'Password is too weak. It must be at least 6 characters.',
-            });
-      }
-      else {
-        // Handle other potential creation errors
-        toast({
-          variant: 'destructive',
-          title: 'Login Error',
-          description: creationError.message || 'An unexpected error occurred during account setup.',
-        });
-      }
+    
+    // Hardcoded credentials check
+    if (upperId === 'AD101' && password_from_user === 'pass123') {
+      setCurrentView('admin');
+      setEmployeeId(upperId);
+    } else if (upperId === 'WK001' && password_from_user === 'pass123') {
+      setCurrentView('worker');
+      setEmployeeId(upperId);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'Incorrect Employee ID or password.',
+      });
     }
   };
-
 
   const handleLogout = () => {
-    auth.signOut();
     setEmployeeId(null);
     setCurrentView('login');
-    localStorage.removeItem(EMPLOYEE_ID_STORAGE_KEY);
   };
-  
+
   const handleAddWorker = (newWorker: Omit<Worker, 'id'>) => {
-    const docRef = doc(firestore, 'workers', newWorker.workerId);
-    setDocumentNonBlocking(docRef, newWorker, {});
-     toast({
+    const workerToAdd: Worker = {
+      ...newWorker,
+      id: newWorker.workerId, // Use workerId as id
+    };
+    setWorkers(prev => [...prev, workerToAdd]);
+    toast({
       title: "Worker Added",
-      description: `${newWorker.name} has been added to the system.`,
+      description: `${newWorker.name} has been added.`,
     });
   };
 
   const handleUpdateWorker = (updatedWorker: Partial<Worker>) => {
     if (!updatedWorker.id) return;
-    const docRef = doc(firestore, 'workers', updatedWorker.id);
-    updateDocumentNonBlocking(docRef, updatedWorker);
+    setWorkers(prev => prev.map(w => w.id === updatedWorker.id ? { ...w, ...updatedWorker } : w));
   };
-
 
   const handleUpdateMenuItem = (updatedItem: Partial<MenuItem>) => {
     if (!updatedItem.id) return;
-    const docRef = doc(firestore, 'menu_items', updatedItem.id);
-    updateDocumentNonBlocking(docRef, {
-      ...updatedItem,
-      updatedAt: serverTimestamp(),
-    });
+    setMenuItems(prev => prev.map(item => item.id === updatedItem.id ? { ...item, ...updatedItem, updatedAt: new Date().toISOString() } : item));
   };
 
   const handleAddMenuItem = (newItem: Omit<MenuItem, 'id'>) => {
-    const collectionRef = collection(firestore, 'menu_items');
-    addDocumentNonBlocking(collectionRef, {
+    const itemToAdd: MenuItem = {
       ...newItem,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+      id: (Math.random() * 10000).toString(), // simple id generation
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setMenuItems(prev => [...prev, itemToAdd]);
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
-    if (!employeeId) return;
-    const docRef = doc(firestore, 'workers', employeeId, 'orders', orderId);
-    updateDocumentNonBlocking(docRef, { status: newStatus });
+    setActiveOrders(prev => prev.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
   };
   
   if (!isClient) {
@@ -213,7 +114,7 @@ export default function Home() {
         return (
           <WorkerPortal
             menuItems={menuItemsToShow}
-            activeOrders={ordersToShow}
+            activeOrders={ordersToShow.filter(o => o.workerId === employeeId)}
             onLogout={handleLogout}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             employeeId={employeeId || ''}

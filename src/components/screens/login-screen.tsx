@@ -68,7 +68,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           Login
         </Button>
          <p className="text-xs text-muted-foreground text-center">
-          For first-time login, use the password from your database.<br/> An account will be securely created for you.
+          Admin: AD101 / pass123 <br/> Worker: WK001 / pass123
         </p>
       </CardFooter>
     </Card>

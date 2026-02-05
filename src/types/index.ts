@@ -1,4 +1,3 @@
-import { FieldValue } from "firebase/firestore";
 
 export type Tag = "Veg" | "Non-Veg";
 export type OrderStatus = "Pending" | "In Progress" | "Ready" | "Completed";
@@ -12,8 +11,8 @@ export interface MenuItem {
   imageUrl: string;
   tags: Tag[];
   quantity: number;
-  createdAt?: string | FieldValue;
-  updatedAt?: string | FieldValue;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface OrderItem {
