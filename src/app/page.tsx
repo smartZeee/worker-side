@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { MenuItem, Order } from '@/types';
+import type { MenuItem, Order, Worker } from '@/types';
 import LoginScreen from '@/components/screens/login-screen';
 import AdminPortal from '@/components/screens/admin-portal';
 import WorkerPortal from '@/components/screens/worker-portal';
 import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
@@ -22,6 +22,7 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const firestore = useFirestore();
   const auth = useAuth();
+  const { user } = useAuth();
 
   const menuItemsQuery = useMemoFirebase(() => collection(firestore, 'menu_items'), [firestore]);
   const { data: menuItems } = useCollection<MenuItem>(menuItemsQuery);
@@ -35,53 +36,82 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
     const savedEmployeeId = localStorage.getItem(EMPLOYEE_ID_STORAGE_KEY);
-    if (savedEmployeeId) {
-      handleLogin(savedEmployeeId, true);
+    if (savedEmployeeId && user) {
+        // If there's a logged in user and a saved ID, validate and set view
+        getDoc(doc(firestore, 'workers', savedEmployeeId.toUpperCase())).then(workerDoc => {
+            if(workerDoc.exists()) {
+                const workerData = workerDoc.data() as Worker;
+                if (workerData.role === 'admin') {
+                    setCurrentView('admin');
+                } else {
+                    setCurrentView('worker');
+                }
+                setEmployeeId(savedEmployeeId);
+            } else {
+                handleLogout();
+            }
+        });
     }
-  }, []);
+  }, [user]);
 
-  const handleLogin = async (id: string, isAutoLogin = false) => {
+  const handleLogin = async (id: string, password_from_user: string) => {
     const upperId = id.toUpperCase();
-    const email = `${id}@culinaryflow.app`;
-    const password = `${id}-password`;
+    const email = `${upperId}@culinaryflow.app`;
 
     try {
-      if (!isAutoLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+      // 1. Check if worker exists and is active in Firestore
+      const workerDocRef = doc(firestore, 'workers', upperId);
+      const workerDoc = await getDoc(workerDocRef);
+
+      if (!workerDoc.exists()) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Employee ID not found.',
+        });
+        return;
       }
       
-      if (upperId.startsWith('AD')) {
-        setEmployeeId(id);
+      const workerData = workerDoc.data() as Worker;
+      if (!workerData.isActive) {
+         toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'This employee account is inactive.',
+        });
+        return;
+      }
+
+      // 2. Try to sign in with Firebase Auth
+      await signInWithEmailAndPassword(auth, email, password_from_user);
+      
+      // 3. Set view based on role
+      if (workerData.role === 'admin') {
         setCurrentView('admin');
-        localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, id);
-      } else if (upperId.startsWith('WK')) {
-        setEmployeeId(id);
+      } else {
         setCurrentView('worker');
-        localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, id);
+      }
+      setEmployeeId(upperId);
+      localStorage.setItem(EMPLOYEE_ID_STORAGE_KEY, upperId);
+
+    } catch (error: any) {
+      // 4. If user not found, create them in Firebase Auth and retry
+      if (error.code === 'auth/user-not-found') {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password_from_user);
+          await handleLogin(id, password_from_user); // Retry login after sign up
+        } catch (signUpError: any) {
+          toast({
+            variant: 'destructive',
+            title: 'Setup Failed',
+            description: `Could not create a new account: ${signUpError.message}`,
+          });
+        }
       } else {
         toast({
           variant: 'destructive',
-          title: 'Invalid Employee ID',
-          description: "Please use 'AD...' for Admin or 'WK...' for Worker.",
-        });
-      }
-    } catch (error: any) {
-      if (error.code === 'auth/user-not-found' && !isAutoLogin) {
-        try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          handleLogin(id); // Retry login after sign up
-        } catch (signUpError) {
-          toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: 'Could not log in or create a new account.',
-          });
-        }
-      } else if (!isAutoLogin) {
-        toast({
-          variant: 'destructive',
-          title: 'Invalid Employee ID or Password',
-          description: "There was an issue logging in.",
+          title: 'Login Failed',
+          description: error.message || "An unexpected error occurred.",
         });
       }
     }
@@ -151,7 +181,7 @@ export default function Home() {
         );
       case 'login':
       default:
-        return <LoginScreen onLogin={(id) => handleLogin(id)} />;
+        return <LoginScreen onLogin={handleLogin} />;
     }
   };
 

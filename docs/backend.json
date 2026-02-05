@@ -116,11 +116,11 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Worker",
       "type": "object",
-      "description": "Represents a kitchen worker.",
+      "description": "Represents a kitchen worker or admin. The document ID for this collection should be the worker's unique login ID (e.g., 'WK001').",
       "properties": {
         "workerId": {
           "type": "string",
-          "description": "The Login ID. (e.g., \"WK001\", \"WK002\"). Should be unique and is used as the document ID."
+          "description": "The Login ID. (e.g., \"WK001\", \"AD101\"). Should be unique and match the document ID."
         },
         "name": {
           "type": "string",
@@ -128,8 +128,8 @@
         },
         "role": {
           "type": "string",
-          "description": "Defines permissions.",
-          "enum": ["kitchen", "manager", "delivery"]
+          "description": "Defines permissions and which portal the user sees.",
+          "enum": ["kitchen", "manager", "delivery", "admin"]
         },
         "isActive": {
           "type": "boolean",
@@ -146,38 +146,11 @@
         "role",
         "isActive"
       ]
-    },
-    "Admin": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Admin",
-      "type": "object",
-      "description": "Represents an administrator user.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the admin."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the administrator."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the administrator.",
-          "format": "email"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "email"
-      ]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -191,19 +164,13 @@
       "schema": {
         "$ref": "#/entities/Worker"
       },
-      "description": "Stores worker information. Used for authentication and assigning orders."
+      "description": "Stores worker information. Used for authentication and assigning orders. The document ID must be the same as the 'workerId' field."
     },
     "/workers/{workerId}/orders/{orderId}": {
       "schema": {
         "$ref": "#/entities/Order"
       },
       "description": "Stores order information associated with a specific worker. Includes the `workerId` for authorization."
-    },
-    "/roles_admin/{adminId}": {
-      "schema": {
-        "$ref": "#/entities/Admin"
-      },
-      "description": "Indicates that a user is an administrator. Existence of a document at this path grants admin privileges. Used for login validation."
     }
   }
 }
