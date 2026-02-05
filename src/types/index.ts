@@ -36,4 +36,5 @@ export interface Worker {
     role: "kitchen" | "manager" | "delivery" | "admin";
     isActive: boolean;
     phone?: string;
+    password: string;
 }

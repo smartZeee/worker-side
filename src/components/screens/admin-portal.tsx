@@ -13,6 +13,7 @@ interface AdminPortalProps {
   onAddMenuItem: (item: Omit<MenuItem, 'id'>) => void;
   onUpdateWorker: (worker: Partial<Worker>) => void;
   onRefreshWorkers?: () => void;
+  onRefreshMenuItems?: () => void;
   employeeId: string;
 }
 
@@ -25,6 +26,7 @@ export default function AdminPortal({
   onAddMenuItem,
   onUpdateWorker,
   onRefreshWorkers,
+  onRefreshMenuItems,
   employeeId,
 }: AdminPortalProps) {
   return (
@@ -39,6 +41,7 @@ export default function AdminPortal({
               menuItems={menuItems} 
               onUpdateMenuItem={onUpdateMenuItem}
               onAddMenuItem={onAddMenuItem}
+              onRefresh={onRefreshMenuItems}
             />
             <WorkerManagement 
               workers={workers}

@@ -15,6 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import { AddWorkerDialog } from "./add-worker-dialog";
+import { EditWorkerDialog } from "./edit-worker-dialog";
+import { useState } from "react";
 
 interface WorkerManagementProps {
   workers: Worker[];
@@ -23,6 +25,7 @@ interface WorkerManagementProps {
 }
 
 export default function WorkerManagement({ workers, onUpdateWorker, onRefresh }: WorkerManagementProps) {
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
 
   const handleToggle = (worker: Worker, checked: boolean) => {
     onUpdateWorker({ id: worker.id, isActive: checked });
@@ -32,6 +35,14 @@ export default function WorkerManagement({ workers, onUpdateWorker, onRefresh }:
     if (onRefresh) {
       onRefresh();
     }
+  };
+
+  const handleWorkerClick = (worker: Worker) => {
+    setSelectedWorker(worker);
+  };
+
+  const handleCloseDialog = () => {
+    setSelectedWorker(null);
   };
 
   const roleColors: Record<Worker['role'], string> = {
@@ -64,7 +75,11 @@ export default function WorkerManagement({ workers, onUpdateWorker, onRefresh }:
             </TableHeader>
             <TableBody>
                 {workers.map((worker) => (
-                <TableRow key={worker.id}>
+                <TableRow 
+                  key={worker.id}
+                  className="cursor-pointer hover:bg-secondary/50"
+                  onClick={() => handleWorkerClick(worker)}
+                >
                     <TableCell>
                         <div className="font-medium">{worker.name}</div>
                         <div className="text-sm text-muted-foreground">{worker.workerId}</div>
@@ -73,7 +88,7 @@ export default function WorkerManagement({ workers, onUpdateWorker, onRefresh }:
                         <Badge variant="outline" className={roleColors[worker.role] || ''}>{worker.role}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                         <div className="flex items-center justify-end space-x-2">
+                         <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
                             <Label htmlFor={`active-${worker.id}`} className={worker.isActive ? 'text-green-400' : 'text-red-400'}>
                                 {worker.isActive ? "Active" : "Inactive"}
                             </Label>
@@ -90,6 +105,14 @@ export default function WorkerManagement({ workers, onUpdateWorker, onRefresh }:
             </TableBody>
             </Table>
          </ScrollArea>
+         {selectedWorker && (
+          <EditWorkerDialog
+            worker={selectedWorker}
+            isOpen={!!selectedWorker}
+            onClose={handleCloseDialog}
+            onRefresh={onRefresh || (() => {})}
+          />
+        )}
       </CardContent>
     </Card>
   );

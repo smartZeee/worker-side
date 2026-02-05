@@ -59,13 +59,14 @@ export default function EmployeeTable({ workers }: EmployeeTableProps) {
                 <TableHead>Name</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Password</TableHead>
                 <TableHead className="text-right">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {workers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     No employees found
                   </TableCell>
                 </TableRow>
@@ -86,6 +87,11 @@ export default function EmployeeTable({ workers }: EmployeeTableProps) {
                     <TableCell>
                       <div className="text-sm text-muted-foreground">
                         {worker.phone || 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-mono">
+                        {'•'.repeat(worker.password?.length || 8)}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">

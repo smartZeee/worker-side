@@ -36,6 +36,7 @@ const initialWorkerState: Omit<Worker, 'id' | 'isActive'> = {
   name: "",
   role: "kitchen",
   phone: "",
+  password: "",
 };
 
 export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDialogProps) {
@@ -75,6 +76,7 @@ export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDia
         name: newWorker.name,
         role: newWorker.role,
         phone: newWorker.phone || '',
+        password: newWorker.password,
         isActive: true,
       };
 
@@ -85,6 +87,9 @@ export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDia
         title: 'Success',
         description: `Worker ${newWorker.name} added successfully!`,
       });
+      
+      // Trigger refresh callback
+      onAddWorker({} as Omit<Worker, 'id'>);
       
       setNewWorker(initialWorkerState);
       setIsOpen(false);
@@ -100,7 +105,7 @@ export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDia
     }
   };
 
-  const isFormValid = newWorker.workerId && newWorker.name && newWorker.role && !idError;
+  const isFormValid = newWorker.workerId && newWorker.name && newWorker.role && newWorker.password && !idError;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -131,6 +136,17 @@ export function AddWorkerDialog({ onAddWorker, existingWorkerIds }: AddWorkerDia
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">Phone</Label>
             <Input id="phone" value={newWorker.phone} onChange={handleInputChange} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="password" className="text-right">Password</Label>
+            <Input 
+              id="password" 
+              type="password" 
+              value={newWorker.password} 
+              onChange={handleInputChange} 
+              className="col-span-3" 
+              placeholder="Enter password"
+            />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="role" className="text-right">Role</Label>

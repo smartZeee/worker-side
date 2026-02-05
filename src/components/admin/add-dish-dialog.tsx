@@ -77,6 +77,9 @@ export function AddDishDialog({ onAddMenuItem }: AddDishDialogProps) {
         description: 'Dish added successfully!',
       });
       
+      // Trigger refresh callback
+      onAddMenuItem({} as Omit<MenuItem, 'id'>);
+      
       setNewDish(initialDishState);
       setIsOpen(false);
     } catch (error) {

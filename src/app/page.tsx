@@ -94,21 +94,131 @@ export default function Home() {
     }
   };
 
-  const handleLogin = (id: string, password_from_user: string) => {
+  const refreshMenuItems = async () => {
+    try {
+      const menuSnapshot = await getDocs(collection(firestore, 'menu'));
+      const menuData = menuSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as MenuItem[];
+      setMenuItems(menuData);
+    } catch (error) {
+      console.error('Error refreshing menu items:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to refresh menu items.',
+      });
+    }
+  };
+
+  const handleLogin = async (id: string, password_from_user: string) => {
     const upperId = id.toUpperCase();
     
-    // Hardcoded credentials check
-    if (upperId === 'AD101' && password_from_user === 'pass123') {
-      setCurrentView('admin');
+    try {
+      // Fallback: Check for default admin credentials first
+      if (upperId === 'AD101' && password_from_user === 'admin123') {
+        setEmployeeId(upperId);
+        setCurrentView('admin');
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back, Admin! (Using default credentials)',
+        });
+        return;
+      }
+      
+      // First, check admin collection
+      const adminSnapshot = await getDocs(collection(firestore, 'admin'));
+      console.log('Admin docs count:', adminSnapshot.docs.length);
+      
+      const adminData = adminSnapshot.docs.find(doc => {
+        const data = doc.data();
+        console.log('Checking admin doc:', data);
+        return data.id === upperId || data.adminId === upperId;
+      });
+      
+      if (adminData) {
+        const admin = adminData.data();
+        console.log('Admin found:', admin);
+        
+        // Check admin password
+        if (admin.password !== password_from_user) {
+          toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: 'Incorrect password.',
+          });
+          return;
+        }
+        
+        // Successful admin login
+        setEmployeeId(upperId);
+        setCurrentView('admin');
+        
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back, Admin!`,
+        });
+        return;
+      }
+      
+      // If not admin, check employee collection
+      const employeeSnapshot = await getDocs(collection(firestore, 'employee'));
+      console.log('Employee docs count:', employeeSnapshot.docs.length);
+      
+      const employeeData = employeeSnapshot.docs.find(doc => {
+        const data = doc.data();
+        console.log('Checking employee doc:', data);
+        return data.workerId === upperId;
+      });
+      
+      if (!employeeData) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Employee ID not found.',
+        });
+        return;
+      }
+      
+      const employee = employeeData.data() as Worker;
+      console.log('Employee found:', employee);
+      
+      // Check if password matches
+      if (employee.password !== password_from_user) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Incorrect password.',
+        });
+        return;
+      }
+      
+      // Check if employee is active
+      if (!employee.isActive) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Your account is inactive. Please contact admin.',
+        });
+        return;
+      }
+      
+      // Successful worker login
       setEmployeeId(upperId);
-    } else if (upperId === 'WK001' && password_from_user === 'pass123') {
       setCurrentView('worker');
-      setEmployeeId(upperId);
-    } else {
+      
+      toast({
+        title: 'Login Successful',
+        description: `Welcome back, ${employee.name}!`,
+      });
+      
+    } catch (error) {
+      console.error('Error during login:', error);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: 'Incorrect Employee ID or password.',
+        description: 'An error occurred during login. Please try again.',
       });
     }
   };
@@ -221,6 +331,7 @@ export default function Home() {
             onAddMenuItem={handleAddMenuItem}
             onUpdateWorker={handleUpdateWorker}
             onRefreshWorkers={refreshWorkers}
+            onRefreshMenuItems={refreshMenuItems}
             employeeId={employeeId || ''}
           />
         );
