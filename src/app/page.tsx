@@ -28,7 +28,7 @@ export default function Home() {
   const menuItemsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'menu_items') : null, [firestore]);
   const { data: menuItems } = useCollection<MenuItem>(menuItemsQuery);
   
-  const workersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'workers') : null, [firestore]);
+  const workersQuery = useMemoFirebase(() => (firestore && currentView === 'admin') ? collection(firestore, 'workers') : null, [firestore, currentView]);
   const { data: workers } = useCollection<Worker>(workersQuery);
 
   const ordersQuery = useMemoFirebase(
