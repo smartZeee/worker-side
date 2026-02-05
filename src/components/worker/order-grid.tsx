@@ -40,7 +40,11 @@ const statusBadgeColors: Record<OrderStatus, string> = {
 
 export default function OrderGrid({ orders, menuItems, onUpdateOrderStatus }: OrderGridProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const sortedOrders = [...orders].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  const sortedOrders = [...orders].sort((a, b) => {
+    const timeA = a.createdAt?.toDate ? a.createdAt.toDate() : a.timestamp ? new Date(a.timestamp) : new Date();
+    const timeB = b.createdAt?.toDate ? b.createdAt.toDate() : b.timestamp ? new Date(b.timestamp) : new Date();
+    return timeA.getTime() - timeB.getTime();
+  });
 
   const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
     switch (currentStatus) {
@@ -119,7 +123,11 @@ export default function OrderGrid({ orders, menuItems, onUpdateOrderStatus }: Or
                         </ul>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(order.timestamp), { addSuffix: true })}
+                        {formatDistanceToNow(
+                          order.createdAt?.toDate ? order.createdAt.toDate() : 
+                          order.timestamp ? new Date(order.timestamp) : new Date(),
+                          { addSuffix: true }
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={statusBadgeColors[order.status] || ''}>{order.status}</Badge>
