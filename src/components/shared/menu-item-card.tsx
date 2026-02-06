@@ -39,7 +39,7 @@ export default function MenuItemCard({ item, className }: MenuItemCardProps) {
         {item.description && <p className="text-xs text-muted-foreground mt-1 truncate">{item.description}</p>}
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
-        <p className="text-lg font-bold text-primary">${(item.price || 0).toFixed(2)}</p>
+        <p className="text-lg font-bold text-primary">₹{(item.price || 0).toFixed(2)}</p>
         <Badge variant={isAvailable ? 'secondary' : 'destructive'}>
           {isAvailable ? 'Available' : 'Sold Out'}
         </Badge>

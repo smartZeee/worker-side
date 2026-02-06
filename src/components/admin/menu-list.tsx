@@ -62,7 +62,7 @@ export default function MenuList({ menuItems, onUpdateMenuItem, onAddMenuItem, o
                 />
                 <div>
                   <p className="font-semibold">{item.name}</p>
-                  <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import type { MenuItem } from "@/types";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { initializeFirebase } from "@/firebase";
@@ -37,6 +38,8 @@ interface EditDishDialogProps {
 
 export function EditDishDialog({ item, isOpen, onClose, onRefresh }: EditDishDialogProps) {
   const [isActive, setIsActive] = useState(item.quantity > 0);
+  const [price, setPrice] = useState(item.price);
+  const [imageUrl, setImageUrl] = useState(item.imageUrl);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { toast } = useToast();
@@ -92,6 +95,34 @@ export function EditDishDialog({ item, isOpen, onClose, onRefresh }: EditDishDia
     }
   };
 
+  const handleSaveChanges = async () => {
+    setIsSubmitting(true);
+    try {
+      const itemRef = doc(firestore, 'menu', item.id);
+      await updateDoc(itemRef, { 
+        price: price,
+        imageUrl: imageUrl,
+        updatedAt: new Date().toISOString() 
+      });
+      
+      toast({
+        title: 'Success',
+        description: 'Dish updated successfully!',
+      });
+      onRefresh();
+      onClose();
+    } catch (error) {
+      console.error('Error updating dish:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update dish.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -106,8 +137,29 @@ export function EditDishDialog({ item, isOpen, onClose, onRefresh }: EditDishDia
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
                 <p className="font-semibold">{item.name}</p>
-                <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} • {item.category}</p>
+                <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)} • {item.category}</p>
               </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="price" className="text-right">Price</Label>
+              <Input 
+                id="price" 
+                type="number" 
+                value={price} 
+                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)} 
+                className="col-span-3" 
+                disabled={isSubmitting}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
+              <Input 
+                id="imageUrl" 
+                value={imageUrl} 
+                onChange={(e) => setImageUrl(e.target.value)} 
+                className="col-span-3" 
+                disabled={isSubmitting}
+              />
             </div>
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
@@ -133,9 +185,14 @@ export function EditDishDialog({ item, isOpen, onClose, onRefresh }: EditDishDia
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Dish
             </Button>
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+                Close
+              </Button>
+              <Button onClick={handleSaveChanges} disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

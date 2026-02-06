@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Utensils, ShoppingCart, Users } from "lucide-react";
+import { IndianRupee, Utensils, ShoppingCart, Users } from "lucide-react";
 import type { MenuItem, Order, Worker } from "@/types";
 import OrderStatusChart from "./order-status-chart";
 import {
@@ -31,8 +31,29 @@ export default function DashboardStats({ menuItems, workers, activeOrders }: Das
     // Handle both new format (createdAt timestamp) and old format (timestamp string)
     if (!order.createdAt && !order.timestamp) return false;
     
-    const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : 
-                      order.timestamp ? parseISO(order.timestamp) : new Date();
+    let orderDate: Date;
+    
+    // Handle Firestore Timestamp (createdAt)
+    if (order.createdAt?.toDate) {
+      orderDate = order.createdAt.toDate();
+    } 
+    // Handle timestamp field which could be string, Date, number, or Timestamp
+    else if (order.timestamp) {
+      if (typeof order.timestamp === 'string') {
+        orderDate = parseISO(order.timestamp);
+      } else if (order.timestamp instanceof Date) {
+        orderDate = order.timestamp;
+      } else if (typeof order.timestamp === 'number') {
+        orderDate = new Date(order.timestamp);
+      } else if ((order.timestamp as any).toDate) {
+        // Firestore Timestamp
+        orderDate = (order.timestamp as any).toDate();
+      } else {
+        orderDate = new Date();
+      }
+    } else {
+      orderDate = new Date();
+    }
     
     switch (revenuePeriod) {
       case 'daily':
@@ -96,11 +117,11 @@ export default function DashboardStats({ menuItems, workers, activeOrders }: Das
                 <SelectItem value="all">All Time</SelectItem>
               </SelectContent>
             </Select>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <IndianRupee className="h-4 w-4 text-muted-foreground" />
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+          <div className="text-2xl font-bold">₹{totalRevenue.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">{periodLabels[revenuePeriod]}</p>
         </CardContent>
       </Card>
